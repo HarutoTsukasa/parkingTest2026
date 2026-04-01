@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import com.sena.parking.dto.VehiculoDTO;
 import com.sena.parking.model.Vehiculo;
+import com.sena.parking.repository.IRegistroRepository;
 import com.sena.parking.repository.IVehiculoRepository;
 
 @Service
@@ -15,6 +16,9 @@ public class VehiculoService {
 
 	@Autowired
 	private IVehiculoRepository vehiculoRepository;
+
+	@Autowired
+	private IRegistroRepository registroRepository;
 
 	public List<VehiculoDTO> listarTodos() {
 		return vehiculoRepository.findAll().stream().map(this::convertirADTO).collect(Collectors.toList());
@@ -69,6 +73,9 @@ public class VehiculoService {
 	public void eliminarVehiculo(Long id) {
 		if (!vehiculoRepository.existsById(id)) {
 			throw new RuntimeException("Vehículo no encontrado con id: " + id);
+		}
+		if (registroRepository.existsByVehiculoId(id)) {
+			throw new RuntimeException("No se puede eliminar el vehículo porque tiene registros asociados.");
 		}
 		vehiculoRepository.deleteById(id);
 	}

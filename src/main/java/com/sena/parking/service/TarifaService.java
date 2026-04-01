@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.sena.parking.dto.TarifaDTO;
 import com.sena.parking.model.Tarifa;
 import com.sena.parking.model.TipoVehiculo;
+import com.sena.parking.repository.IRegistroRepository;
 import com.sena.parking.repository.ITarifaRepository;
 
 @Service
@@ -16,6 +17,9 @@ public class TarifaService {
 
 	@Autowired
 	private ITarifaRepository tarifaRepository;
+
+	@Autowired
+	private IRegistroRepository registroRepository;
 
 	public List<TarifaDTO> listarTarifas() {
 		return tarifaRepository.findAll().stream().map(this::convertirADTO).collect(Collectors.toList());
@@ -67,8 +71,12 @@ public class TarifaService {
 	}
 
 	public void eliminarTarifa(Long id) {
-		if (!tarifaRepository.existsById(id)) {
-			throw new RuntimeException("Tarifa no encontrada con id: " + id);
+		Tarifa tarifa = tarifaRepository.findById(id)
+				.orElseThrow(() -> new RuntimeException("Tarifa no encontrada con id: " + id));
+		// Verificar si hay algún registro activo o histórico con vehículos de ese tipo
+		if (registroRepository.existsByVehiculoTipo(tarifa.getTipoVehiculo())) {
+			throw new RuntimeException(
+					"No se puede eliminar la tarifa porque hay vehículos de ese tipo con registros.");
 		}
 		tarifaRepository.deleteById(id);
 	}

@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import com.sena.parking.model.Registro;
+import com.sena.parking.model.TipoVehiculo;
 
 @Repository
 public interface IRegistroRepository extends JpaRepository<Registro, Long> {
@@ -14,5 +15,9 @@ public interface IRegistroRepository extends JpaRepository<Registro, Long> {
 	Optional<Registro> findByVehiculoPlacaAndActivoTrue(String placa);
 
 	List<Registro> findByActivoTrue();
+	
+	boolean existsByVehiculoId(Long vehiculoId);
+	
+	boolean existsByVehiculoTipo(TipoVehiculo tipo);
 
 }
