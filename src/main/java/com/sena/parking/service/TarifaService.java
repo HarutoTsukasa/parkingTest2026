@@ -17,40 +17,68 @@ public class TarifaService {
 	@Autowired
 	private ITarifaRepository tarifaRepository;
 
-	public List<TarifaDTO> findAll() {
-		return tarifaRepository.findAll().stream().map(this::convertToDTO).collect(Collectors.toList());
+	public List<TarifaDTO> listarTarifas() {
+		return tarifaRepository.findAll().stream().map(this::convertirADTO).collect(Collectors.toList());
 	}
 
-	public TarifaDTO findByTipo(TipoVehiculo tipo) {
+	public TarifaDTO obtenerPorId(Long id) {
+		Tarifa tarifa = tarifaRepository.findById(id)
+				.orElseThrow(() -> new RuntimeException("Tarifa no encontrada con id: " + id));
+		return convertirADTO(tarifa);
+	}
+
+	public TarifaDTO obtenerPorTipo(TipoVehiculo tipo) {
 		Tarifa tarifa = tarifaRepository.findByTipoVehiculo(tipo)
-				.orElseThrow(() -> new RuntimeException("Tarifa no encontrada para el tipo: " + tipo));
-		return convertToDTO(tarifa);
+				.orElseThrow(() -> new RuntimeException("Tarifa no configurada para " + tipo));
+		return convertirADTO(tarifa);
 	}
 
-	public TarifaDTO save(TarifaDTO tarifaDTO) {
-		Tarifa tarifa = convertToEntity(tarifaDTO);
-		tarifa = tarifaRepository.save(tarifa);
-		return convertToDTO(tarifa);
-	}
+	public TarifaDTO crearTarifa(TarifaDTO dto) {
+		// Validar que no exista ya una tarifa para ese tipo
+		if (tarifaRepository.findByTipoVehiculo(dto.getTipoVehiculo()).isPresent()) {
+			throw new RuntimeException("Ya existe una tarifa para el tipo: " + dto.getTipoVehiculo());
+		}
 
-	public void delete(Long id) {
-		tarifaRepository.deleteById(id);
-	}
-
-	private TarifaDTO convertToDTO(Tarifa tarifa) {
-		TarifaDTO dto = new TarifaDTO();
-		dto.setIdTarifa(tarifa.getIdTarifa());
-		dto.setTipoVehiculo(tarifa.getTipoVehiculo());
-		dto.setTarifaPorHora(tarifa.getTarifaPorHora());
-		dto.setTarifaPorDia(tarifa.getTarifaPorDia());
-		return dto;
-	}
-
-	private Tarifa convertToEntity(TarifaDTO dto) {
 		Tarifa tarifa = new Tarifa();
 		tarifa.setTipoVehiculo(dto.getTipoVehiculo());
 		tarifa.setTarifaPorHora(dto.getTarifaPorHora());
 		tarifa.setTarifaPorDia(dto.getTarifaPorDia());
-		return tarifa;
+
+		tarifa = tarifaRepository.save(tarifa);
+		return convertirADTO(tarifa);
+	}
+
+	public TarifaDTO actualizarTarifa(Long id, TarifaDTO dto) {
+		Tarifa tarifa = tarifaRepository.findById(id)
+				.orElseThrow(() -> new RuntimeException("Tarifa no encontrada con id: " + id));
+
+		// Si el tipo cambia, verificar que no exista otra con ese tipo
+		if (tarifa.getTipoVehiculo() != dto.getTipoVehiculo()
+				&& tarifaRepository.findByTipoVehiculo(dto.getTipoVehiculo()).isPresent()) {
+			throw new RuntimeException("Ya existe una tarifa para el tipo: " + dto.getTipoVehiculo());
+		}
+
+		tarifa.setTipoVehiculo(dto.getTipoVehiculo());
+		tarifa.setTarifaPorHora(dto.getTarifaPorHora());
+		tarifa.setTarifaPorDia(dto.getTarifaPorDia());
+
+		tarifa = tarifaRepository.save(tarifa);
+		return convertirADTO(tarifa);
+	}
+
+	public void eliminarTarifa(Long id) {
+		if (!tarifaRepository.existsById(id)) {
+			throw new RuntimeException("Tarifa no encontrada con id: " + id);
+		}
+		tarifaRepository.deleteById(id);
+	}
+
+	private TarifaDTO convertirADTO(Tarifa t) {
+		TarifaDTO dto = new TarifaDTO();
+		dto.setIdTarifa(t.getIdTarifa());
+		dto.setTipoVehiculo(t.getTipoVehiculo());
+		dto.setTarifaPorHora(t.getTarifaPorHora());
+		dto.setTarifaPorDia(t.getTarifaPorDia());
+		return dto;
 	}
 }

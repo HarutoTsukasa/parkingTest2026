@@ -16,46 +16,71 @@ public class VehiculoService {
 	@Autowired
 	private IVehiculoRepository vehiculoRepository;
 
-	public List<VehiculoDTO> findAll() {
-		return vehiculoRepository.findAll().stream().map(this::convertToDTO).collect(Collectors.toList());
+	public List<VehiculoDTO> listarTodos() {
+		return vehiculoRepository.findAll().stream().map(this::convertirADTO).collect(Collectors.toList());
 	}
 
-	public VehiculoDTO findByPlaca(String placa) {
+	public VehiculoDTO obtenerPorId(Long id) {
+		Vehiculo vehiculo = vehiculoRepository.findById(id)
+				.orElseThrow(() -> new RuntimeException("Vehículo no encontrado con id: " + id));
+		return convertirADTO(vehiculo);
+	}
+
+	public VehiculoDTO obtenerPorPlaca(String placa) {
 		Vehiculo vehiculo = vehiculoRepository.findByPlaca(placa)
-				.orElseThrow(() -> new RuntimeException("Vehículo no encontrado"));
-		return convertToDTO(vehiculo);
+				.orElseThrow(() -> new RuntimeException("Vehículo no encontrado con placa: " + placa));
+		return convertirADTO(vehiculo);
 	}
 
-	public VehiculoDTO save(VehiculoDTO vehiculoDTO) {
-		if (vehiculoRepository.existsByPlaca(vehiculoDTO.getPlaca())) {
-			throw new RuntimeException("Ya existe un vehículo con esa placa");
+	public VehiculoDTO registrarVehiculo(VehiculoDTO dto) {
+		// Validar que no exista ya una placa igual
+		if (vehiculoRepository.findByPlaca(dto.getPlaca()).isPresent()) {
+			throw new RuntimeException("Ya existe un vehículo con la placa: " + dto.getPlaca());
 		}
-		Vehiculo vehiculo = convertToEntity(vehiculoDTO);
-		vehiculo = vehiculoRepository.save(vehiculo);
-		return convertToDTO(vehiculo);
-	}
 
-	public void delete(Long id) {
-		vehiculoRepository.deleteById(id);
-	}
-
-	private VehiculoDTO convertToDTO(Vehiculo vehiculo) {
-		VehiculoDTO dto = new VehiculoDTO();
-		dto.setIdVehiculo(vehiculo.getIdVehiculo());
-		dto.setPlaca(vehiculo.getPlaca());
-		dto.setTipo(vehiculo.getTipo());
-		dto.setMarca(vehiculo.getMarca());
-		dto.setModelo(vehiculo.getModelo());
-		return dto;
-	}
-
-	private Vehiculo convertToEntity(VehiculoDTO dto) {
 		Vehiculo vehiculo = new Vehiculo();
 		vehiculo.setPlaca(dto.getPlaca());
 		vehiculo.setTipo(dto.getTipo());
 		vehiculo.setMarca(dto.getMarca());
 		vehiculo.setModelo(dto.getModelo());
-		return vehiculo;
+
+		vehiculo = vehiculoRepository.save(vehiculo);
+		return convertirADTO(vehiculo);
+	}
+
+	public VehiculoDTO actualizarVehiculo(Long id, VehiculoDTO dto) {
+		Vehiculo vehiculo = vehiculoRepository.findById(id)
+				.orElseThrow(() -> new RuntimeException("Vehículo no encontrado con id: " + id));
+
+		// Si la placa cambia, verificar que no exista otra
+		if (!vehiculo.getPlaca().equals(dto.getPlaca()) && vehiculoRepository.findByPlaca(dto.getPlaca()).isPresent()) {
+			throw new RuntimeException("Ya existe un vehículo con la placa: " + dto.getPlaca());
+		}
+
+		vehiculo.setPlaca(dto.getPlaca());
+		vehiculo.setTipo(dto.getTipo());
+		vehiculo.setMarca(dto.getMarca());
+		vehiculo.setModelo(dto.getModelo());
+
+		vehiculo = vehiculoRepository.save(vehiculo);
+		return convertirADTO(vehiculo);
+	}
+
+	public void eliminarVehiculo(Long id) {
+		if (!vehiculoRepository.existsById(id)) {
+			throw new RuntimeException("Vehículo no encontrado con id: " + id);
+		}
+		vehiculoRepository.deleteById(id);
+	}
+
+	private VehiculoDTO convertirADTO(Vehiculo v) {
+		VehiculoDTO dto = new VehiculoDTO();
+		dto.setIdVehiculo(v.getIdVehiculo());
+		dto.setPlaca(v.getPlaca());
+		dto.setTipo(v.getTipo());
+		dto.setMarca(v.getMarca());
+		dto.setModelo(v.getModelo());
+		return dto;
 	}
 
 }
