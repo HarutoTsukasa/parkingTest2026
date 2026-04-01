@@ -2,7 +2,7 @@
 
 Esta API proporciona endpoints RESTful para realizar operaciones CRUD. Sistema web para la administración de un parqueadero que permite gestionar vehículos, tarifas, registros de entrada/salida y generar reportes. Desarrollado con Spring Boot, Java 25, MySQL, JPA/Hibernate, Thymeleaf y una interfaz moderna con Bootstrap 5, DataTables y gráficos dinámicos.
 
-##✨ Características 
+## ✨ Características 
 
 - **Gestión de Vehículos:** CRUD de vehículos con placa única, tipo (CARRO, MOTOCICLETA, BICICLETA, EBIKE), marca y modelo.
 
