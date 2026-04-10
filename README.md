@@ -90,6 +90,14 @@ Si deseas cambiar el puerto del servidor
   "modelo": "Wave S"
 }
 ```
+### 🚀 Ejemplo de JSON para creación de tarifas
+```json
+{
+  "tipoVehiculo": "MOTOCICLETA",
+  "tarifaPorHora": "30000",
+  "tarifaPorDia": "1500"
+}
+```
 
 ## 🗄️ Base de Datos
 

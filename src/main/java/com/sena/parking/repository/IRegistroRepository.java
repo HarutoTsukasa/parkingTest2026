@@ -16,8 +16,8 @@ public interface IRegistroRepository extends JpaRepository<Registro, Long> {
 
 	List<Registro> findByActivoTrue();
 	
-	boolean existsByVehiculoId(Long vehiculoId);
+	boolean existsByVehiculoIdVehiculo(Long vehiculoId); //correccion
 	
-	boolean existsByVehiculoTipo(TipoVehiculo tipo);
+	boolean existsByVehiculoTipo(TipoVehiculo tipoVehiculo);
 
 }

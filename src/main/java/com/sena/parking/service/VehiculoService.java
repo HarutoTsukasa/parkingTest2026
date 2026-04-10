@@ -74,7 +74,7 @@ public class VehiculoService {
 		if (!vehiculoRepository.existsById(id)) {
 			throw new RuntimeException("Vehículo no encontrado con id: " + id);
 		}
-		if (registroRepository.existsByVehiculoId(id)) {
+		if (registroRepository.existsByVehiculoIdVehiculo(id)) { // correccion
 			throw new RuntimeException("No se puede eliminar el vehículo porque tiene registros asociados.");
 		}
 		vehiculoRepository.deleteById(id);
