@@ -18,6 +18,8 @@ import com.sena.parking.dto.RegistroSalidaDTO;
 import com.sena.parking.model.Registro;
 import com.sena.parking.service.RegistroService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/registros")
 public class RegistroController {
@@ -44,7 +46,7 @@ public class RegistroController {
 	}
 
 	@PostMapping("/entrada")
-	public ResponseEntity<Registro> registrarEntrada(@RequestBody RegistroEntradaDTO entradaDTO) {
+	public ResponseEntity<Registro> registrarEntrada(@Valid @RequestBody RegistroEntradaDTO entradaDTO) {
 		Registro registro = registroService.registrarEntrada(entradaDTO);
 		return ResponseEntity.status(HttpStatus.CREATED).body(registro);
 	}

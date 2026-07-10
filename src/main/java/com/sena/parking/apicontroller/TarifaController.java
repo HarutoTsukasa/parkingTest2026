@@ -15,8 +15,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.sena.parking.dto.TarifaDTO;
+import com.sena.parking.exception.BusinessRuleException;
 import com.sena.parking.model.TipoVehiculo;
 import com.sena.parking.service.TarifaService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/tarifas")
@@ -42,24 +45,27 @@ public class TarifaController {
 
 	@GetMapping("/tipo/{tipo}")
 	public ResponseEntity<TarifaDTO> obtenerPorTipo(@PathVariable String tipo) {
-		// Convertir String a enum (manejar excepción si es inválido)
+		// Antes: catch (IllegalArgumentException) { throw new RuntimeException(...) }
+		// Con el nuevo GlobalExceptionHandler, una RuntimeException genérica caería
+		// en el handler de 500. Se usa BusinessRuleException para que siga siendo 400.
+		TipoVehiculo tipoEnum;
 		try {
-			TipoVehiculo tipoEnum = TipoVehiculo.valueOf(tipo.toUpperCase());
-			TarifaDTO tarifa = tarifaService.obtenerPorTipo(tipoEnum);
-			return ResponseEntity.ok(tarifa);
+			tipoEnum = TipoVehiculo.valueOf(tipo.toUpperCase());
 		} catch (IllegalArgumentException e) {
-			throw new RuntimeException("Tipo de vehículo inválido: " + tipo);
+			throw new BusinessRuleException("Tipo de vehículo inválido: " + tipo);
 		}
+		TarifaDTO tarifa = tarifaService.obtenerPorTipo(tipoEnum);
+		return ResponseEntity.ok(tarifa);
 	}
 
 	@PostMapping
-	public ResponseEntity<TarifaDTO> crearTarifa(@RequestBody TarifaDTO tarifaDTO) {
+	public ResponseEntity<TarifaDTO> crearTarifa(@Valid @RequestBody TarifaDTO tarifaDTO) {
 		TarifaDTO nueva = tarifaService.crearTarifa(tarifaDTO);
 		return ResponseEntity.status(HttpStatus.CREATED).body(nueva);
 	}
 
 	@PutMapping("/{id}")
-	public ResponseEntity<TarifaDTO> actualizarTarifa(@PathVariable Long id, @RequestBody TarifaDTO tarifaDTO) {
+	public ResponseEntity<TarifaDTO> actualizarTarifa(@PathVariable Long id, @Valid @RequestBody TarifaDTO tarifaDTO) {
 		TarifaDTO actualizada = tarifaService.actualizarTarifa(id, tarifaDTO);
 		return ResponseEntity.ok(actualizada);
 	}

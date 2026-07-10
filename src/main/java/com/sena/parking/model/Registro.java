@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -37,5 +38,15 @@ public class Registro {
 	@ManyToOne
 	@JoinColumn(name = "idVehiculo", nullable = false)
 	private Vehiculo vehiculo;
+
+	// Antes esta columna era nullable=false pero ningún service la asignaba.
+	// Esto es la última línea de defensa: si algún día alguien llama
+	// registroRepository.save() sin pasar por RegistroService, igual queda bien.
+	@PrePersist
+	protected void onCreate() {
+		if (fechaHoraIngreso == null) {
+			fechaHoraIngreso = LocalDateTime.now();
+		}
+	}
 
 }

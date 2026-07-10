@@ -10,14 +10,26 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.sena.parking.exception.BusinessRuleException;
+import com.sena.parking.exception.DuplicateResourceException;
+import com.sena.parking.exception.ResourceNotFoundException;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-	@ExceptionHandler(RuntimeException.class)
-	public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
-		Map<String, String> error = new HashMap<>();
-		error.put("error", ex.getMessage());
-		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+	@ExceptionHandler(ResourceNotFoundException.class)
+	public ResponseEntity<Map<String, String>> handleNotFound(ResourceNotFoundException ex) {
+		return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+	}
+
+	@ExceptionHandler(DuplicateResourceException.class)
+	public ResponseEntity<Map<String, String>> handleDuplicate(DuplicateResourceException ex) {
+		return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+	}
+
+	@ExceptionHandler(BusinessRuleException.class)
+	public ResponseEntity<Map<String, String>> handleBusinessRule(BusinessRuleException ex) {
+		return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
@@ -30,9 +42,20 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(DataIntegrityViolationException.class)
 	public ResponseEntity<Map<String, String>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+		return buildResponse(HttpStatus.CONFLICT,
+				"Error de integridad de datos: " + ex.getMostSpecificCause().getMessage());
+	}
+
+	// Red de seguridad final: errores no anticipados -> 500 real, no 400 falso.
+	@ExceptionHandler(Exception.class)
+	public ResponseEntity<Map<String, String>> handleGenericException(Exception ex) {
+		return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor");
+	}
+
+	private ResponseEntity<Map<String, String>> buildResponse(HttpStatus status, String message) {
 		Map<String, String> error = new HashMap<>();
-		error.put("error", "Error de integridad de datos: " + ex.getMostSpecificCause().getMessage());
-		return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+		error.put("error", message);
+		return ResponseEntity.status(status).body(error);
 	}
 
 }

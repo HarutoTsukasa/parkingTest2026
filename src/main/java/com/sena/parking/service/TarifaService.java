@@ -7,6 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.sena.parking.dto.TarifaDTO;
+import com.sena.parking.exception.BusinessRuleException;
+import com.sena.parking.exception.DuplicateResourceException;
+import com.sena.parking.exception.ResourceNotFoundException;
 import com.sena.parking.model.Tarifa;
 import com.sena.parking.model.TipoVehiculo;
 import com.sena.parking.repository.IRegistroRepository;
@@ -27,20 +30,19 @@ public class TarifaService {
 
 	public TarifaDTO obtenerPorId(Long id) {
 		Tarifa tarifa = tarifaRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Tarifa no encontrada con id: " + id));
+				.orElseThrow(() -> new ResourceNotFoundException("Tarifa no encontrada con id: " + id));
 		return convertirADTO(tarifa);
 	}
 
 	public TarifaDTO obtenerPorTipo(TipoVehiculo tipo) {
 		Tarifa tarifa = tarifaRepository.findByTipoVehiculo(tipo)
-				.orElseThrow(() -> new RuntimeException("Tarifa no configurada para " + tipo));
+				.orElseThrow(() -> new ResourceNotFoundException("Tarifa no configurada para " + tipo));
 		return convertirADTO(tarifa);
 	}
 
 	public TarifaDTO crearTarifa(TarifaDTO dto) {
-		// Validar que no exista ya una tarifa para ese tipo
 		if (tarifaRepository.findByTipoVehiculo(dto.getTipoVehiculo()).isPresent()) {
-			throw new RuntimeException("Ya existe una tarifa para el tipo: " + dto.getTipoVehiculo());
+			throw new DuplicateResourceException("Ya existe una tarifa para el tipo: " + dto.getTipoVehiculo());
 		}
 
 		Tarifa tarifa = new Tarifa();
@@ -54,12 +56,11 @@ public class TarifaService {
 
 	public TarifaDTO actualizarTarifa(Long id, TarifaDTO dto) {
 		Tarifa tarifa = tarifaRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Tarifa no encontrada con id: " + id));
+				.orElseThrow(() -> new ResourceNotFoundException("Tarifa no encontrada con id: " + id));
 
-		// Si el tipo cambia, verificar que no exista otra con ese tipo
 		if (tarifa.getTipoVehiculo() != dto.getTipoVehiculo()
 				&& tarifaRepository.findByTipoVehiculo(dto.getTipoVehiculo()).isPresent()) {
-			throw new RuntimeException("Ya existe una tarifa para el tipo: " + dto.getTipoVehiculo());
+			throw new DuplicateResourceException("Ya existe una tarifa para el tipo: " + dto.getTipoVehiculo());
 		}
 
 		tarifa.setTipoVehiculo(dto.getTipoVehiculo());
@@ -72,10 +73,9 @@ public class TarifaService {
 
 	public void eliminarTarifa(Long id) {
 		Tarifa tarifa = tarifaRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Tarifa no encontrada con id: " + id));
-		// Verificar si hay algún registro activo o histórico con vehículos de ese tipo
+				.orElseThrow(() -> new ResourceNotFoundException("Tarifa no encontrada con id: " + id));
 		if (registroRepository.existsByVehiculoTipo(tarifa.getTipoVehiculo())) {
-			throw new RuntimeException(
+			throw new BusinessRuleException(
 					"No se puede eliminar la tarifa porque hay vehículos de ese tipo con registros.");
 		}
 		tarifaRepository.deleteById(id);
@@ -89,4 +89,5 @@ public class TarifaService {
 		dto.setTarifaPorDia(t.getTarifaPorDia());
 		return dto;
 	}
+
 }

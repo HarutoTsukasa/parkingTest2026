@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import com.sena.parking.dto.RegistroEntradaDTO;
 import com.sena.parking.dto.RegistroSalidaDTO;
+import com.sena.parking.exception.BusinessRuleException;
+import com.sena.parking.exception.ResourceNotFoundException;
 import com.sena.parking.model.Registro;
 import com.sena.parking.model.Tarifa;
 import com.sena.parking.model.Vehiculo;
@@ -40,63 +42,74 @@ public class RegistroService {
 
 	@Transactional
 	public Registro registrarEntrada(RegistroEntradaDTO entradaDTO) {
-		Vehiculo vehiculo = vehiculoRepository.findByPlaca(entradaDTO.getPlaca())
-				.orElseThrow(() -> new RuntimeException("Vehículo no registrado"));
+		String placaNormalizada = normalizarPlaca(entradaDTO.getPlaca());
 
-		// Verificar que no tenga un registro activo
+		// findByPlacaForUpdate toma un lock pesimista (SELECT ... FOR UPDATE)
+		// sobre la fila del vehículo. Mientras esta transacción no termine,
+		// cualquier otra transacción que intente lo mismo con la misma placa
+		// queda bloqueada esperando, en vez de leer un estado "no hay entrada
+		// activa" que ya dejó de ser cierto.
+		Vehiculo vehiculo = vehiculoRepository.findByPlacaForUpdate(placaNormalizada)
+				.orElseThrow(() -> new ResourceNotFoundException("Vehículo no registrado: " + placaNormalizada));
+
 		if (registroRepository.findByVehiculoPlacaAndActivoTrue(vehiculo.getPlaca()).isPresent()) {
-			throw new RuntimeException("El vehículo ya se encuentra en el parqueadero");
+			throw new BusinessRuleException("El vehículo ya se encuentra en el parqueadero");
 		}
 
 		Registro registro = new Registro();
 		registro.setVehiculo(vehiculo);
+		registro.setFechaHoraIngreso(LocalDateTime.now());
 		registro.setActivo(true);
 		return registroRepository.save(registro);
 	}
 
 	@Transactional
 	public RegistroSalidaDTO registrarSalida(String placa) {
-		Registro registro = registroRepository.findByVehiculoPlacaAndActivoTrue(placa)
-				.orElseThrow(() -> new RuntimeException("No hay registro activo para la placa " + placa));
+		String placaNormalizada = normalizarPlaca(placa);
+
+		Registro registro = registroRepository.findByVehiculoPlacaAndActivoTrue(placaNormalizada).orElseThrow(
+				() -> new ResourceNotFoundException("No hay registro activo para la placa " + placaNormalizada));
 
 		registro.setFechaHoraSalida(LocalDateTime.now());
 
-		double costo = calcularCosto(registro);
+		long horas = calcularHorasEstadia(registro.getFechaHoraIngreso(), registro.getFechaHoraSalida());
+		double costo = calcularCosto(registro.getVehiculo(), horas);
+
 		registro.setValorPagado(costo);
 		registro.setActivo(false);
-
 		registro = registroRepository.save(registro);
 
 		RegistroSalidaDTO salidaDTO = new RegistroSalidaDTO();
-		salidaDTO.setPlaca(placa);
+		salidaDTO.setIdRegistro(registro.getIdRegistro()); // antes quedaba siempre null
+		salidaDTO.setPlaca(placaNormalizada);
 		salidaDTO.setValorCobrado(costo);
-
-		long horas = Duration.between(registro.getFechaHoraIngreso(), registro.getFechaHoraSalida()).toHours();
-		if (horas == 0)
-			horas = 1;
 		salidaDTO.setHorasEstadia(horas);
 
 		return salidaDTO;
 	}
 
-	private double calcularCosto(Registro registro) {
-		LocalDateTime entrada = registro.getFechaHoraIngreso();
-		LocalDateTime salida = registro.getFechaHoraSalida() != null ? registro.getFechaHoraSalida()
-				: LocalDateTime.now();
-
+	// Antes esta cuenta se hacía dos veces (una en calcularCosto, otra en
+	// registrarSalida) con el riesgo de que diverjan si alguien tocaba una
+	// sin tocar la otra. Ahora hay una sola fuente de verdad para las horas.
+	private long calcularHorasEstadia(LocalDateTime entrada, LocalDateTime salida) {
 		long horas = Duration.between(entrada, salida).toHours();
-		if (horas == 0)
-			horas = 1; // mínimo una hora
+		return horas == 0 ? 1 : horas; // mínimo una hora
+	}
 
-		Tarifa tarifa = tarifaRepository.findByTipoVehiculo(registro.getVehiculo().getTipo()).orElseThrow(
-				() -> new RuntimeException("Tarifa no configurada para " + registro.getVehiculo().getTipo()));
+	private double calcularCosto(Vehiculo vehiculo, long horas) {
+		Tarifa tarifa = tarifaRepository.findByTipoVehiculo(vehiculo.getTipo())
+				.orElseThrow(() -> new ResourceNotFoundException("Tarifa no configurada para " + vehiculo.getTipo()));
 
-		// Cálculo con días completos + horas restantes
 		long dias = horas / 24;
 		long horasRestantes = horas % 24;
-		double costo = dias * tarifa.getTarifaPorDia() + horasRestantes * tarifa.getTarifaPorHora();
+		return dias * tarifa.getTarifaPorDia() + horasRestantes * tarifa.getTarifaPorHora();
+	}
 
-		return costo;
+	private String normalizarPlaca(String placa) {
+		if (placa == null || placa.isBlank()) {
+			throw new BusinessRuleException("La placa no puede estar vacía");
+		}
+		return placa.trim().toUpperCase();
 	}
 
 }

@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.sena.parking.dto.VehiculoDTO;
 import com.sena.parking.service.VehiculoService;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/vehiculos")
 public class VehiculoController {
@@ -46,13 +48,14 @@ public class VehiculoController {
 	}
 
 	@PostMapping
-	public ResponseEntity<VehiculoDTO> crearVehiculo(@RequestBody VehiculoDTO vehiculoDTO) {
+	public ResponseEntity<VehiculoDTO> crearVehiculo(@Valid @RequestBody VehiculoDTO vehiculoDTO) {
 		VehiculoDTO nuevo = vehiculoService.registrarVehiculo(vehiculoDTO);
 		return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
 	}
 
 	@PutMapping("/{id}")
-	public ResponseEntity<VehiculoDTO> actualizarVehiculo(@PathVariable Long id, @RequestBody VehiculoDTO vehiculoDTO) {
+	public ResponseEntity<VehiculoDTO> actualizarVehiculo(@PathVariable Long id,
+			@Valid @RequestBody VehiculoDTO vehiculoDTO) {
 		VehiculoDTO actualizado = vehiculoService.actualizarVehiculo(id, vehiculoDTO);
 		return ResponseEntity.ok(actualizado);
 	}

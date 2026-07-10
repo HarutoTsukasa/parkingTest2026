@@ -7,6 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.sena.parking.dto.VehiculoDTO;
+import com.sena.parking.exception.BusinessRuleException;
+import com.sena.parking.exception.DuplicateResourceException;
+import com.sena.parking.exception.ResourceNotFoundException;
 import com.sena.parking.model.Vehiculo;
 import com.sena.parking.repository.IRegistroRepository;
 import com.sena.parking.repository.IVehiculoRepository;
@@ -26,24 +29,26 @@ public class VehiculoService {
 
 	public VehiculoDTO obtenerPorId(Long id) {
 		Vehiculo vehiculo = vehiculoRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Vehículo no encontrado con id: " + id));
+				.orElseThrow(() -> new ResourceNotFoundException("Vehículo no encontrado con id: " + id));
 		return convertirADTO(vehiculo);
 	}
 
 	public VehiculoDTO obtenerPorPlaca(String placa) {
-		Vehiculo vehiculo = vehiculoRepository.findByPlaca(placa)
-				.orElseThrow(() -> new RuntimeException("Vehículo no encontrado con placa: " + placa));
+		String placaNormalizada = normalizarPlaca(placa);
+		Vehiculo vehiculo = vehiculoRepository.findByPlaca(placaNormalizada).orElseThrow(
+				() -> new ResourceNotFoundException("Vehículo no encontrado con placa: " + placaNormalizada));
 		return convertirADTO(vehiculo);
 	}
 
 	public VehiculoDTO registrarVehiculo(VehiculoDTO dto) {
-		// Validar que no exista ya una placa igual
-		if (vehiculoRepository.findByPlaca(dto.getPlaca()).isPresent()) {
-			throw new RuntimeException("Ya existe un vehículo con la placa: " + dto.getPlaca());
+		String placaNormalizada = normalizarPlaca(dto.getPlaca());
+
+		if (vehiculoRepository.findByPlaca(placaNormalizada).isPresent()) {
+			throw new DuplicateResourceException("Ya existe un vehículo con la placa: " + placaNormalizada);
 		}
 
 		Vehiculo vehiculo = new Vehiculo();
-		vehiculo.setPlaca(dto.getPlaca());
+		vehiculo.setPlaca(placaNormalizada);
 		vehiculo.setTipo(dto.getTipo());
 		vehiculo.setMarca(dto.getMarca());
 		vehiculo.setModelo(dto.getModelo());
@@ -54,14 +59,16 @@ public class VehiculoService {
 
 	public VehiculoDTO actualizarVehiculo(Long id, VehiculoDTO dto) {
 		Vehiculo vehiculo = vehiculoRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Vehículo no encontrado con id: " + id));
+				.orElseThrow(() -> new ResourceNotFoundException("Vehículo no encontrado con id: " + id));
 
-		// Si la placa cambia, verificar que no exista otra
-		if (!vehiculo.getPlaca().equals(dto.getPlaca()) && vehiculoRepository.findByPlaca(dto.getPlaca()).isPresent()) {
-			throw new RuntimeException("Ya existe un vehículo con la placa: " + dto.getPlaca());
+		String placaNormalizada = normalizarPlaca(dto.getPlaca());
+
+		if (!vehiculo.getPlaca().equals(placaNormalizada)
+				&& vehiculoRepository.findByPlaca(placaNormalizada).isPresent()) {
+			throw new DuplicateResourceException("Ya existe un vehículo con la placa: " + placaNormalizada);
 		}
 
-		vehiculo.setPlaca(dto.getPlaca());
+		vehiculo.setPlaca(placaNormalizada);
 		vehiculo.setTipo(dto.getTipo());
 		vehiculo.setMarca(dto.getMarca());
 		vehiculo.setModelo(dto.getModelo());
@@ -72,12 +79,21 @@ public class VehiculoService {
 
 	public void eliminarVehiculo(Long id) {
 		if (!vehiculoRepository.existsById(id)) {
-			throw new RuntimeException("Vehículo no encontrado con id: " + id);
+			throw new ResourceNotFoundException("Vehículo no encontrado con id: " + id);
 		}
-		if (registroRepository.existsByVehiculoIdVehiculo(id)) { // correccion
-			throw new RuntimeException("No se puede eliminar el vehículo porque tiene registros asociados.");
+		if (registroRepository.existsByVehiculoIdVehiculo(id)) {
+			throw new BusinessRuleException("No se puede eliminar el vehículo porque tiene registros asociados.");
 		}
 		vehiculoRepository.deleteById(id);
+	}
+
+	// Antes "abc123", "ABC123" y " ABC123" eran placas distintas para el unique
+	// constraint. Ahora todo entra y sale normalizado.
+	private String normalizarPlaca(String placa) {
+		if (placa == null || placa.isBlank()) {
+			throw new BusinessRuleException("La placa no puede estar vacía");
+		}
+		return placa.trim().toUpperCase();
 	}
 
 	private VehiculoDTO convertirADTO(Vehiculo v) {
