@@ -28,7 +28,7 @@ public class Tarifa {
 	private Long idTarifa;
 
 	@Enumerated(EnumType.STRING)
-	@Column(nullable = false)
+	@Column(nullable = false, unique = true)
 	private TipoVehiculo tipoVehiculo; // "AUTO" o "MOTO"
 
 	@Column(nullable = false)

@@ -1,1275 +1,1396 @@
 <!DOCTYPE html>
-<html lang="es" data-bs-theme="dark" xmlns:th="http://thymeLeaf.org">
-
+<html lang="es" xmlns:th="http://thymeLeaf.org">
 <head>
-	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>ParkVault — Sistema de Parqueadero</title>
-
-	<!-- Bootstrap 5.3 -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-	<!-- Bootstrap Icons -->
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
-	<!-- DataTables 2 -->
-	<link href="https://cdn.datatables.net/2.0.8/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
-	<!-- Google Fonts -->
-	<link
-		href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap"
-		rel="stylesheet" />
-
-	<style>
-		:root {
-			--pk-purple: #7c3aed;
-			--pk-purple-light: #a855f7;
-			--pk-purple-dim: #4c1d95;
-			--pk-purple-glow: rgba(124, 58, 237, 0.35);
-			--pk-yellow: #f59e0b;
-			--pk-green: #10b981;
-			--pk-red: #ef4444;
-			--pk-bg: #0d0b14;
-			--pk-surface: #13101e;
-			--pk-card: #1a1628;
-			--pk-border: rgba(124, 58, 237, 0.2);
-			--pk-text: #e2d9f3;
-			--pk-muted: #7b6fa0;
-			--font-head: 'Syne', sans-serif;
-			--font-mono: 'DM Mono', monospace;
-		}
-
-		/* ── GLOBAL ── */
-		*,
-		*::before,
-		*::after {
-			box-sizing: border-box;
-		}
-
-		body {
-			background-color: var(--pk-bg);
-			color: var(--pk-text);
-			font-family: var(--font-head);
-			min-height: 100vh;
-			overflow-x: hidden;
-		}
-
-		/* Grid texture overlay */
-		body::before {
-			content: '';
-			position: fixed;
-			inset: 0;
-			background-image:
-				linear-gradient(rgba(124, 58, 237, .04) 1px, transparent 1px),
-				linear-gradient(90deg, rgba(124, 58, 237, .04) 1px, transparent 1px);
-			background-size: 40px 40px;
-			pointer-events: none;
-			z-index: 0;
-		}
-
-		/* ── SCROLLBAR ── */
-		::-webkit-scrollbar {
-			width: 6px;
-		}
-
-		::-webkit-scrollbar-track {
-			background: var(--pk-bg);
-		}
-
-		::-webkit-scrollbar-thumb {
-			background: var(--pk-purple-dim);
-			border-radius: 3px;
-		}
-
-		/* ── SIDEBAR ── */
-		#sidebar {
-			position: fixed;
-			top: 0;
-			left: 0;
-			width: 260px;
-			height: 100vh;
-			background: var(--pk-surface);
-			border-right: 1px solid var(--pk-border);
-			display: flex;
-			flex-direction: column;
-			z-index: 1040;
-			transition: transform .3s cubic-bezier(.4, 0, .2, 1);
-		}
-
-		#sidebar .brand {
-			padding: 1.6rem 1.4rem 1rem;
-			border-bottom: 1px solid var(--pk-border);
-			display: flex;
-			align-items: center;
-			gap: .75rem;
-		}
-
-		.brand-icon {
-			width: 42px;
-			height: 42px;
-			background: linear-gradient(135deg, var(--pk-purple), var(--pk-purple-light));
-			border-radius: 10px;
-			display: grid;
-			place-items: center;
-			font-size: 1.2rem;
-			color: #fff;
-			box-shadow: 0 0 20px var(--pk-purple-glow);
-		}
-
-		.brand-name {
-			font-size: 1.25rem;
-			font-weight: 800;
-			letter-spacing: -.5px;
-			color: #fff;
-			line-height: 1;
-		}
-
-		.brand-sub {
-			font-size: .65rem;
-			color: var(--pk-muted);
-			font-family: var(--font-mono);
-			letter-spacing: 2px;
-			text-transform: uppercase;
-		}
-
-		.nav-section {
-			padding: .5rem .8rem;
-			font-size: .65rem;
-			font-family: var(--font-mono);
-			color: var(--pk-muted);
-			letter-spacing: 3px;
-			text-transform: uppercase;
-			margin-top: .5rem;
-		}
-
-		#sidebar .nav-link {
-			display: flex;
-			align-items: center;
-			gap: .75rem;
-			padding: .62rem 1rem;
-			border-radius: 8px;
-			margin: 2px .5rem;
-			color: var(--pk-muted);
-			font-size: .9rem;
-			transition: all .2s;
-			position: relative;
-		}
-
-		#sidebar .nav-link i {
-			font-size: 1.1rem;
-		}
-
-		#sidebar .nav-link:hover,
-		#sidebar .nav-link.active {
-			background: rgba(124, 58, 237, .15);
-			color: var(--pk-purple-light);
-		}
-
-		#sidebar .nav-link.active::before {
-			content: '';
-			position: absolute;
-			left: -4px;
-			top: 20%;
-			height: 60%;
-			width: 3px;
-			background: var(--pk-purple-light);
-			border-radius: 2px;
-		}
-
-		.sidebar-footer {
-			margin-top: auto;
-			padding: 1rem .5rem;
-			border-top: 1px solid var(--pk-border);
-		}
-
-		/* ── TOPBAR ── */
-		#topbar {
-			position: fixed;
-			top: 0;
-			left: 260px;
-			right: 0;
-			height: 64px;
-			background: rgba(13, 11, 20, .85);
-			backdrop-filter: blur(12px);
-			border-bottom: 1px solid var(--pk-border);
-			display: flex;
-			align-items: center;
-			padding: 0 1.5rem;
-			gap: 1rem;
-			z-index: 1030;
-			transition: left .3s cubic-bezier(.4, 0, .2, 1);
-		}
-
-		.topbar-search {
-			flex: 1;
-			max-width: 380px;
-			position: relative;
-		}
-
-		.topbar-search input {
-			background: var(--pk-card);
-			border: 1px solid var(--pk-border);
-			color: var(--pk-text);
-			padding: .45rem 1rem .45rem 2.5rem;
-			border-radius: 8px;
-			width: 100%;
-			font-size: .875rem;
-			transition: border-color .2s, box-shadow .2s;
-		}
-
-		.topbar-search input:focus {
-			outline: none;
-			border-color: var(--pk-purple);
-			box-shadow: 0 0 0 3px var(--pk-purple-glow);
-		}
-
-		.topbar-search .search-icon {
-			position: absolute;
-			left: .75rem;
-			top: 50%;
-			transform: translateY(-50%);
-			color: var(--pk-muted);
-			font-size: .9rem;
-		}
-
-		.topbar-actions {
-			display: flex;
-			align-items: center;
-			gap: .5rem;
-			margin-left: auto;
-		}
-
-		.icon-btn {
-			width: 38px;
-			height: 38px;
-			background: var(--pk-card);
-			border: 1px solid var(--pk-border);
-			border-radius: 8px;
-			color: var(--pk-muted);
-			display: grid;
-			place-items: center;
-			cursor: pointer;
-			transition: all .2s;
-			position: relative;
-		}
-
-		.icon-btn:hover {
-			color: var(--pk-purple-light);
-			border-color: var(--pk-purple);
-		}
-
-		.badge-dot {
-			position: absolute;
-			top: 6px;
-			right: 6px;
-			width: 8px;
-			height: 8px;
-			background: var(--pk-red);
-			border-radius: 50%;
-			border: 2px solid var(--pk-bg);
-		}
-
-		.avatar {
-			width: 38px;
-			height: 38px;
-			background: linear-gradient(135deg, var(--pk-purple), var(--pk-purple-light));
-			border-radius: 8px;
-			display: grid;
-			place-items: center;
-			font-size: .875rem;
-			font-weight: 700;
-			color: #fff;
-			cursor: pointer;
-			box-shadow: 0 0 12px var(--pk-purple-glow);
-		}
-
-		/* ── MAIN ── */
-		#main {
-			margin-left: 260px;
-			padding: 80px 1.5rem 2rem;
-			min-height: 100vh;
-			position: relative;
-			z-index: 1;
-			transition: margin-left .3s cubic-bezier(.4, 0, .2, 1);
-		}
-
-		/* ── PAGE HEADER ── */
-		.page-header {
-			display: flex;
-			align-items: flex-start;
-			justify-content: space-between;
-			flex-wrap: wrap;
-			gap: 1rem;
-			margin-bottom: 2rem;
-		}
-
-		.page-title {
-			font-size: 1.75rem;
-			font-weight: 800;
-			letter-spacing: -1px;
-			color: #fff;
-			line-height: 1;
-		}
-
-		.page-title span {
-			color: var(--pk-purple-light);
-		}
-
-		.page-sub {
-			font-size: .8rem;
-			font-family: var(--font-mono);
-			color: var(--pk-muted);
-			margin-top: .3rem;
-		}
-
-		/* ── STAT CARDS ── */
-		.stat-card {
-			background: var(--pk-card);
-			border: 1px solid var(--pk-border);
-			border-radius: 14px;
-			padding: 1.4rem 1.2rem;
-			position: relative;
-			overflow: hidden;
-			transition: transform .2s, box-shadow .2s;
-		}
-
-		.stat-card:hover {
-			transform: translateY(-3px);
-			box-shadow: 0 8px 32px rgba(0, 0, 0, .4);
-		}
-
-		.stat-card::after {
-			content: '';
-			position: absolute;
-			top: 0;
-			left: 0;
-			right: 0;
-			height: 2px;
-			background: var(--accent, var(--pk-purple));
-		}
-
-		.stat-icon {
-			width: 44px;
-			height: 44px;
-			border-radius: 10px;
-			background: rgba(124, 58, 237, .15);
-			display: grid;
-			place-items: center;
-			font-size: 1.2rem;
-			color: var(--pk-purple-light);
-			margin-bottom: 1rem;
-		}
-
-		.stat-value {
-			font-size: 2.1rem;
-			font-weight: 800;
-			color: #fff;
-			letter-spacing: -1.5px;
-			line-height: 1;
-		}
-
-		.stat-label {
-			font-size: .78rem;
-			color: var(--pk-muted);
-			font-family: var(--font-mono);
-			letter-spacing: 1px;
-			text-transform: uppercase;
-			margin-top: .3rem;
-		}
-
-		.stat-trend {
-			font-size: .78rem;
-			font-family: var(--font-mono);
-			margin-top: .5rem;
-			display: flex;
-			align-items: center;
-			gap: .3rem;
-		}
-
-		.trend-up {
-			color: var(--pk-green);
-		}
-
-		.trend-down {
-			color: var(--pk-red);
-		}
-
-		/* ── SECTION TITLE ── */
-		.section-title {
-			font-size: 1rem;
-			font-weight: 700;
-			color: #fff;
-			margin-bottom: 1rem;
-			display: flex;
-			align-items: center;
-			gap: .6rem;
-		}
-
-		.section-title i {
-			color: var(--pk-purple-light);
-		}
-
-		/* ── PARKING GRID ── */
-		.parking-grid {
-			display: grid;
-			grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
-			gap: .5rem;
-		}
-
-		.slot {
-			aspect-ratio: 1;
-			border-radius: 8px;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			justify-content: center;
-			gap: 2px;
-			cursor: pointer;
-			font-family: var(--font-mono);
-			font-size: .68rem;
-			font-weight: 500;
-			border: 1px solid transparent;
-			transition: all .2s;
-			position: relative;
-		}
-
-		.slot i {
-			font-size: 1.3rem;
-		}
-
-		.slot.free {
-			background: rgba(16, 185, 129, .1);
-			border-color: rgba(16, 185, 129, .3);
-			color: var(--pk-green);
-		}
-
-		.slot.free:hover {
-			background: rgba(16, 185, 129, .2);
-			transform: scale(1.06);
-			box-shadow: 0 0 12px rgba(16, 185, 129, .3);
-		}
-
-		.slot.occupied {
-			background: rgba(239, 68, 68, .1);
-			border-color: rgba(239, 68, 68, .3);
-			color: var(--pk-red);
-		}
-
-		.slot.reserved {
-			background: rgba(245, 158, 11, .1);
-			border-color: rgba(245, 158, 11, .3);
-			color: var(--pk-yellow);
-		}
-
-		.slot.vip {
-			background: rgba(124, 58, 237, .15);
-			border-color: rgba(124, 58, 237, .4);
-			color: var(--pk-purple-light);
-		}
-
-		/* ── TABLE ── */
-		.pk-table {
-			background: var(--pk-card);
-			border: 1px solid var(--pk-border);
-			border-radius: 14px;
-			overflow: hidden;
-		}
-
-		.pk-table table {
-			margin: 0;
-		}
-
-		.pk-table thead th {
-			background: rgba(124, 58, 237, .1);
-			border-color: var(--pk-border);
-			color: var(--pk-muted);
-			font-size: .72rem;
-			font-family: var(--font-mono);
-			letter-spacing: 2px;
-			text-transform: uppercase;
-			padding: .9rem 1rem;
-		}
-
-		.pk-table tbody td {
-			border-color: var(--pk-border);
-			padding: .85rem 1rem;
-			vertical-align: middle;
-			font-size: .875rem;
-		}
-
-		.pk-table tbody tr:hover td {
-			background: rgba(124, 58, 237, .06);
-		}
-
-		.plate-badge {
-			font-family: var(--font-mono);
-			background: rgba(124, 58, 237, .15);
-			color: var(--pk-purple-light);
-			border: 1px solid rgba(124, 58, 237, .3);
-			padding: .2rem .6rem;
-			border-radius: 5px;
-			font-size: .8rem;
-			font-weight: 500;
-			letter-spacing: 1px;
-		}
-
-		.status-badge {
-			display: inline-flex;
-			align-items: center;
-			gap: .3rem;
-			padding: .2rem .65rem;
-			border-radius: 20px;
-			font-size: .73rem;
-			font-family: var(--font-mono);
-		}
-
-		.status-badge.active {
-			background: rgba(16, 185, 129, .15);
-			color: var(--pk-green);
-		}
-
-		.status-badge.pending {
-			background: rgba(245, 158, 11, .15);
-			color: var(--pk-yellow);
-		}
-
-		.status-badge.done {
-			background: rgba(124, 58, 237, .15);
-			color: var(--pk-purple-light);
-		}
-
-		.status-badge::before {
-			content: '';
-			width: 6px;
-			height: 6px;
-			border-radius: 50%;
-			background: currentColor;
-		}
-
-		/* ── REVENUE CHART ── */
-		.chart-card {
-			background: var(--pk-card);
-			border: 1px solid var(--pk-border);
-			border-radius: 14px;
-			padding: 1.4rem;
-		}
-
-		.bar-chart {
-			display: flex;
-			align-items: flex-end;
-			gap: .5rem;
-			height: 120px;
-			padding-top: .5rem;
-		}
-
-		.bar-wrap {
-			flex: 1;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			gap: .4rem;
-		}
-
-		.bar {
-			width: 100%;
-			border-radius: 4px 4px 0 0;
-			background: linear-gradient(180deg, var(--pk-purple-light), var(--pk-purple-dim));
-			transition: opacity .2s;
-			min-height: 4px;
-		}
-
-		.bar-wrap:hover .bar {
-			opacity: .75;
-		}
-
-		.bar-label {
-			font-size: .62rem;
-			font-family: var(--font-mono);
-			color: var(--pk-muted);
-			letter-spacing: .5px;
-		}
-
-		/* ── QUICK ACCESS ── */
-		.quick-btn {
-			background: var(--pk-card);
-			border: 1px solid var(--pk-border);
-			border-radius: 12px;
-			padding: 1.1rem;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			gap: .5rem;
-			color: var(--pk-muted);
-			cursor: pointer;
-			transition: all .2s;
-			text-decoration: none;
-		}
-
-		.quick-btn:hover {
-			border-color: var(--pk-purple);
-			color: var(--pk-purple-light);
-			background: rgba(124, 58, 237, .1);
-			transform: translateY(-2px);
-		}
-
-		.quick-btn i {
-			font-size: 1.5rem;
-		}
-
-		.quick-btn span {
-			font-size: .75rem;
-			font-family: var(--font-mono);
-		}
-
-		/* ── ALERTS ── */
-		.pk-alert {
-			background: var(--pk-card);
-			border: 1px solid var(--pk-border);
-			border-left: 3px solid var(--pk-purple);
-			border-radius: 10px;
-			padding: .9rem 1rem;
-			display: flex;
-			align-items: flex-start;
-			gap: .75rem;
-			font-size: .85rem;
-		}
-
-		.pk-alert i {
-			color: var(--pk-purple-light);
-			margin-top: 1px;
-		}
-
-		/* ── TOGGLE ── */
-		#sidebarToggle {
-			display: none;
-			background: var(--pk-card);
-			border: 1px solid var(--pk-border);
-			border-radius: 8px;
-			padding: .4rem .6rem;
-			color: var(--pk-muted);
-			cursor: pointer;
-		}
-
-		/* ── DARK/LIGHT SWITCH ── */
-		#themeToggle {
-			background: var(--pk-card);
-			border: 1px solid var(--pk-border);
-			border-radius: 20px;
-			padding: .3rem .5rem;
-			display: flex;
-			align-items: center;
-			gap: .4rem;
-			cursor: pointer;
-			color: var(--pk-muted);
-			font-size: .8rem;
-			font-family: var(--font-mono);
-			transition: all .2s;
-		}
-
-		#themeToggle:hover {
-			border-color: var(--pk-purple);
-			color: var(--pk-purple-light);
-		}
-
-		/* ── LIGHT MODE ── */
-		[data-bs-theme="light"] {
-			--pk-bg: #f0ecfa;
-			--pk-surface: #ffffff;
-			--pk-card: #f7f4fe;
-			--pk-border: rgba(124, 58, 237, .2);
-			--pk-text: #1e1730;
-			--pk-muted: #7c6fa0;
-		}
-
-		[data-bs-theme="light"] body {
-			background-color: var(--pk-bg);
-		}
-
-		[data-bs-theme="light"] #topbar {
-			background: rgba(240, 236, 250, .85);
-		}
-
-		/* ── MOBILE ── */
-		@media (max-width: 991.98px) {
-			#sidebar {
-				transform: translateX(-100%);
-				box-shadow: 4px 0 32px rgba(0, 0, 0, .5);
-			}
-
-			#sidebar.open {
-				transform: translateX(0);
-			}
-
-			#topbar {
-				left: 0;
-			}
-
-			#main {
-				margin-left: 0;
-			}
-
-			#sidebarToggle {
-				display: inline-flex;
-				align-items: center;
-				gap: .4rem;
-			}
-
-			#overlay {
-				display: none;
-				position: fixed;
-				inset: 0;
-				background: rgba(0, 0, 0, .55);
-				z-index: 1035;
-			}
-
-			#overlay.show {
-				display: block;
-			}
-		}
-
-		/* ── ANIMATIONS ── */
-		@keyframes fadeUp {
-			from {
-				opacity: 0;
-				transform: translateY(16px);
-			}
-
-			to {
-				opacity: 1;
-				transform: translateY(0);
-			}
-		}
-
-		.fade-up {
-			animation: fadeUp .4s ease both;
-		}
-
-		.delay-1 {
-			animation-delay: .05s;
-		}
-
-		.delay-2 {
-			animation-delay: .10s;
-		}
-
-		.delay-3 {
-			animation-delay: .15s;
-		}
-
-		.delay-4 {
-			animation-delay: .20s;
-		}
-
-		.delay-5 {
-			animation-delay: .25s;
-		}
-
-		.delay-6 {
-			animation-delay: .30s;
-		}
-
-		/* ── DATATABLES CUSTOM THEME ── */
-		div.dataTables_wrapper {
-			font-family: var(--font-head);
-			color: var(--pk-text);
-		}
-
-		/* Top controls bar */
-		div.dataTables_wrapper div.dataTables_length label,
-		div.dataTables_wrapper div.dataTables_filter label {
-			color: var(--pk-muted);
-			font-size: .78rem;
-			font-family: var(--font-mono);
-			display: flex;
-			align-items: center;
-			gap: .5rem;
-		}
-
-		div.dataTables_wrapper div.dataTables_length select,
-		div.dataTables_wrapper div.dataTables_filter input {
-			background: var(--pk-bg) !important;
-			border: 1px solid var(--pk-border) !important;
-			color: var(--pk-text) !important;
-			border-radius: 7px !important;
-			padding: .3rem .65rem !important;
-			font-size: .8rem;
-			font-family: var(--font-mono);
-			outline: none;
-			transition: border-color .2s, box-shadow .2s;
-		}
-
-		div.dataTables_wrapper div.dataTables_filter input:focus {
-			border-color: var(--pk-purple) !important;
-			box-shadow: 0 0 0 3px var(--pk-purple-glow) !important;
-		}
-
-		/* Info text */
-		div.dataTables_wrapper div.dataTables_info {
-			color: var(--pk-muted);
-			font-size: .75rem;
-			font-family: var(--font-mono);
-			padding-top: .5rem;
-		}
-
-		/* Pagination */
-		div.dataTables_wrapper div.dataTables_paginate {
-			padding-top: .25rem;
-		}
-
-		div.dataTables_wrapper div.dataTables_paginate ul.pagination .page-item .page-link {
-			background: var(--pk-card) !important;
-			border: 1px solid var(--pk-border) !important;
-			color: var(--pk-muted) !important;
-			font-size: .78rem;
-			font-family: var(--font-mono);
-			transition: all .2s;
-		}
-
-		div.dataTables_wrapper div.dataTables_paginate ul.pagination .page-item .page-link:hover {
-			background: rgba(124, 58, 237, .2) !important;
-			color: var(--pk-purple-light) !important;
-			border-color: var(--pk-purple) !important;
-		}
-
-		div.dataTables_wrapper div.dataTables_paginate ul.pagination .page-item.active .page-link {
-			background: var(--pk-purple) !important;
-			border-color: var(--pk-purple) !important;
-			color: #fff !important;
-			box-shadow: 0 0 10px var(--pk-purple-glow);
-		}
-
-		div.dataTables_wrapper div.dataTables_paginate ul.pagination .page-item.disabled .page-link {
-			opacity: .35;
-		}
-
-		/* Sorting arrows */
-		table.dataTable thead th.sorting,
-		table.dataTable thead th.sorting_asc,
-		table.dataTable thead th.sorting_desc {
-			cursor: pointer;
-		}
-
-		table.dataTable thead th.sorting_asc::after {
-			content: ' ↑';
-			color: var(--pk-purple-light);
-			font-size: .7rem;
-		}
-
-		table.dataTable thead th.sorting_desc::after {
-			content: ' ↓';
-			color: var(--pk-purple-light);
-			font-size: .7rem;
-		}
-
-		table.dataTable thead th.sorting::after {
-			content: ' ↕';
-			color: var(--pk-muted);
-			font-size: .65rem;
-		}
-
-		/* Override Bootstrap table inside DataTables */
-		.pk-table table.dataTable tbody tr {
-			background: transparent !important;
-		}
-
-		.pk-table table.dataTable tbody tr:hover td {
-			background: rgba(124, 58, 237, .07) !important;
-		}
-
-		/* Light mode adjustments */
-		[data-bs-theme="light"] div.dataTables_wrapper div.dataTables_length select,
-		[data-bs-theme="light"] div.dataTables_wrapper div.dataTables_filter input {
-			background: #fff !important;
-		}
-
-		[data-bs-theme="light"] div.dataTables_wrapper div.dataTables_paginate ul.pagination .page-item .page-link {
-			background: #fff !important;
-		}
-	</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ParkVault — Reserva tu espacio</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── TOKENS ── */
+    :root {
+      --p:        #7c3aed;
+      --p-light:  #a855f7;
+      --p-pale:   #ede9fe;
+      --p-dark:   #4c1d95;
+      --p-glow:   rgba(124,58,237,.18);
+      --green:    #059669;
+      --green-bg: #d1fae5;
+      --red:      #dc2626;
+      --red-bg:   #fee2e2;
+      --yellow:   #d97706;
+      --yellow-bg:#fef3c7;
+      --ink:      #1a0533;
+      --ink-2:    #4b3a6b;
+      --ink-3:    #8b7aac;
+      --surface:  #ffffff;
+      --bg:       #f5f3ff;
+      --border:   #e4deff;
+      --font-d:   'Syne', sans-serif;
+      --font-b:   'Inter', sans-serif;
+      --font-m:   'DM Mono', monospace;
+      --r:        12px;
+      --r-lg:     20px;
+      --shadow:   0 4px 24px rgba(124,58,237,.10);
+      --shadow-lg:0 12px 48px rgba(124,58,237,.18);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-b);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--p-pale); border-radius: 3px; }
+
+    /* ═══════════════════════════════════
+       NAV
+    ═══════════════════════════════════ */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 clamp(1rem, 4vw, 3rem);
+      height: 64px;
+      display: flex; align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-brand {
+      display: flex; align-items: center; gap: .65rem;
+      font-family: var(--font-d); font-weight: 800;
+      font-size: 1.2rem; color: var(--ink); text-decoration: none;
+    }
+
+    .nav-brand-icon {
+      width: 36px; height: 36px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--p), var(--p-light));
+      display: grid; place-items: center;
+      color: #fff; font-size: 1rem;
+      box-shadow: 0 0 0 3px var(--p-glow);
+    }
+
+    .nav-links {
+      display: flex; align-items: center; gap: .25rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: .875rem; font-weight: 500;
+      color: var(--ink-2); text-decoration: none;
+      padding: .4rem .85rem; border-radius: 8px;
+      transition: all .18s;
+    }
+
+    .nav-links a:hover { background: var(--p-pale); color: var(--p); }
+
+    .nav-cta {
+      background: var(--p);
+      color: #fff !important;
+      padding: .45rem 1.1rem !important;
+      border-radius: 8px !important;
+      font-weight: 600 !important;
+      box-shadow: 0 2px 12px var(--p-glow);
+      transition: opacity .18s !important;
+    }
+
+    .nav-cta:hover { opacity: .88; background: var(--p) !important; }
+
+    .nav-hamburger {
+      display: none; background: none; border: none;
+      font-size: 1.4rem; color: var(--ink); cursor: pointer;
+    }
+
+    /* ═══════════════════════════════════
+       HERO
+    ═══════════════════════════════════ */
+    .hero {
+      position: relative; overflow: hidden;
+      background: linear-gradient(145deg, #2d0d6e 0%, #5b21b6 55%, #7c3aed 100%);
+      padding: clamp(3rem, 8vw, 6rem) clamp(1rem, 4vw, 3rem);
+      min-height: 480px;
+      display: flex; align-items: center;
+    }
+
+    /* Decorative rings */
+    .hero::before, .hero::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.08);
+      pointer-events: none;
+    }
+
+    .hero::before {
+      width: 560px; height: 560px;
+      top: -180px; right: -100px;
+    }
+
+    .hero::after {
+      width: 320px; height: 320px;
+      bottom: -120px; left: -60px;
+    }
+
+    .hero-ring-extra {
+      position: absolute; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.05);
+      width: 800px; height: 800px;
+      top: -300px; right: -200px;
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      position: relative; z-index: 1;
+      max-width: 1200px; margin: 0 auto; width: 100%;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 3rem;
+      align-items: center;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: .45rem;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 30px;
+      padding: .3rem .9rem;
+      font-size: .72rem; font-family: var(--font-m);
+      color: rgba(255,255,255,.85); letter-spacing: 1.5px;
+      text-transform: uppercase; margin-bottom: 1.2rem;
+    }
+
+    .hero-eyebrow span { width: 6px; height: 6px; background: #a3e635; border-radius: 50%; animation: pulse 2s infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: .5; transform: scale(.7); }
+    }
+
+    .hero-title {
+      font-family: var(--font-d); font-weight: 800;
+      font-size: clamp(2rem, 4.5vw, 3.2rem);
+      line-height: 1.08; letter-spacing: -1.5px;
+      color: #fff; margin-bottom: 1rem;
+    }
+
+    .hero-title em { font-style: normal; color: #c4b5fd; }
+
+    .hero-sub {
+      font-size: 1rem; color: rgba(255,255,255,.7);
+      line-height: 1.6; max-width: 440px; margin-bottom: 1.8rem;
+    }
+
+    .hero-stats {
+      display: flex; gap: 1.8rem; flex-wrap: wrap;
+    }
+
+    .hero-stat-val {
+      font-family: var(--font-d); font-size: 1.8rem;
+      font-weight: 800; color: #fff; line-height: 1;
+    }
+
+    .hero-stat-label {
+      font-size: .72rem; color: rgba(255,255,255,.55);
+      font-family: var(--font-m); letter-spacing: 1px;
+      text-transform: uppercase; margin-top: .2rem;
+    }
+
+    /* Search card floating on hero */
+    .search-card {
+      background: #fff;
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-lg);
+      padding: 1.8rem;
+      position: relative; z-index: 1;
+    }
+
+    .search-card-title {
+      font-family: var(--font-d); font-size: 1rem;
+      font-weight: 700; color: var(--ink);
+      margin-bottom: 1.2rem;
+      display: flex; align-items: center; gap: .5rem;
+    }
+
+    .search-card-title i { color: var(--p); }
+
+    .field-label {
+      font-size: .72rem; font-weight: 600;
+      color: var(--ink-2); letter-spacing: .5px;
+      text-transform: uppercase; margin-bottom: .35rem;
+      font-family: var(--font-m);
+    }
+
+    .field-group { margin-bottom: 1rem; }
+
+    .pk-input {
+      width: 100%; padding: .65rem .9rem;
+      background: var(--bg); border: 1.5px solid var(--border);
+      border-radius: var(--r); font-size: .875rem;
+      font-family: var(--font-b); color: var(--ink);
+      transition: border-color .18s, box-shadow .18s;
+      outline: none;
+    }
+
+    .pk-input:focus {
+      border-color: var(--p);
+      box-shadow: 0 0 0 3px var(--p-glow);
+    }
+
+    .vehicle-tabs {
+      display: flex; gap: .4rem; margin-bottom: 1rem;
+    }
+
+    .vtab {
+      flex: 1; padding: .5rem;
+      background: var(--bg); border: 1.5px solid var(--border);
+      border-radius: 8px; font-size: .8rem;
+      font-family: var(--font-b); color: var(--ink-3);
+      cursor: pointer; text-align: center;
+      display: flex; align-items: center; justify-content: center;
+      gap: .4rem; transition: all .18s;
+    }
+
+    .vtab:hover { border-color: var(--p-pale); color: var(--p); }
+
+    .vtab.active {
+      background: var(--p-pale);
+      border-color: var(--p);
+      color: var(--p); font-weight: 600;
+    }
+
+    .btn-search {
+      width: 100%; padding: .8rem;
+      background: linear-gradient(135deg, var(--p), var(--p-light));
+      color: #fff; border: none; border-radius: var(--r);
+      font-family: var(--font-d); font-size: .95rem; font-weight: 700;
+      cursor: pointer; transition: opacity .18s, transform .15s;
+      display: flex; align-items: center; justify-content: center; gap: .5rem;
+      box-shadow: 0 4px 16px var(--p-glow);
+      letter-spacing: .2px;
+    }
+
+    .btn-search:hover { opacity: .9; transform: translateY(-1px); }
+    .btn-search:active { transform: translateY(0); }
+
+    /* ═══════════════════════════════════
+       SECTION WRAPPER
+    ═══════════════════════════════════ */
+    .section {
+      max-width: 1200px; margin: 0 auto;
+      padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 4vw, 3rem);
+    }
+
+    .section-eyebrow {
+      font-size: .72rem; font-family: var(--font-m);
+      color: var(--p); letter-spacing: 2px;
+      text-transform: uppercase; margin-bottom: .5rem;
+    }
+
+    .section-heading {
+      font-family: var(--font-d); font-size: clamp(1.4rem, 3vw, 2rem);
+      font-weight: 800; color: var(--ink); letter-spacing: -.5px;
+      margin-bottom: .5rem;
+    }
+
+    .section-sub {
+      font-size: .9rem; color: var(--ink-3); line-height: 1.6;
+    }
+
+    /* ═══════════════════════════════════
+       AVAILABILITY MAP
+    ═══════════════════════════════════ */
+    .avail-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 1.5rem;
+      align-items: start;
+      margin-top: 2rem;
+    }
+
+    .map-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .map-header {
+      padding: 1.1rem 1.4rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      justify-content: space-between; flex-wrap: wrap; gap: .75rem;
+    }
+
+    .map-title {
+      font-family: var(--font-d); font-size: .95rem;
+      font-weight: 700; color: var(--ink);
+      display: flex; align-items: center; gap: .5rem;
+    }
+
+    .map-title i { color: var(--p); }
+
+    .level-tabs {
+      display: flex; gap: .3rem;
+    }
+
+    .ltab {
+      font-size: .72rem; font-family: var(--font-m);
+      padding: .3rem .7rem; border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg); color: var(--ink-3);
+      cursor: pointer; transition: all .15s;
+    }
+
+    .ltab.active {
+      background: var(--p); color: #fff; border-color: var(--p);
+    }
+
+    .map-legend {
+      padding: .75rem 1.4rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; gap: 1.2rem; flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex; align-items: center; gap: .4rem;
+      font-size: .72rem; font-family: var(--font-m);
+      color: var(--ink-3);
+    }
+
+    .legend-dot {
+      width: 10px; height: 10px; border-radius: 3px;
+    }
+
+    .dot-free     { background: var(--green); }
+    .dot-occupied { background: var(--red); }
+    .dot-reserved { background: var(--yellow); }
+    .dot-vip      { background: var(--p); }
+
+    .map-body { padding: 1.4rem; }
+
+    /* Zone label */
+    .zone-label {
+      font-size: .65rem; font-family: var(--font-m);
+      color: var(--ink-3); letter-spacing: 2px;
+      text-transform: uppercase; margin-bottom: .6rem;
+      padding-bottom: .4rem; border-bottom: 1px dashed var(--border);
+    }
+
+    .slot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+      gap: .4rem; margin-bottom: 1.2rem;
+    }
+
+    .slot {
+      aspect-ratio: 1; border-radius: 8px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 2px;
+      font-size: .6rem; font-family: var(--font-m);
+      border: 1.5px solid transparent;
+      cursor: pointer; transition: all .18s;
+      position: relative;
+    }
+
+    .slot i { font-size: 1.1rem; }
+
+    .slot.free {
+      background: #ecfdf5; border-color: #6ee7b7; color: var(--green);
+    }
+    .slot.free:hover {
+      background: #d1fae5; transform: scale(1.08);
+      box-shadow: 0 4px 12px rgba(5,150,105,.2);
+    }
+
+    .slot.occupied {
+      background: #fef2f2; border-color: #fca5a5; color: var(--red);
+      cursor: not-allowed; opacity: .7;
+    }
+
+    .slot.reserved {
+      background: #fffbeb; border-color: #fcd34d; color: var(--yellow);
+      cursor: not-allowed;
+    }
+
+    .slot.vip {
+      background: var(--p-pale); border-color: #c4b5fd; color: var(--p);
+    }
+
+    .slot.vip:hover {
+      background: #ddd6fe; transform: scale(1.08);
+      box-shadow: 0 4px 12px var(--p-glow);
+    }
+
+    .slot.selected {
+      background: var(--p) !important;
+      border-color: var(--p-dark) !important;
+      color: #fff !important;
+      transform: scale(1.1);
+      box-shadow: 0 4px 16px var(--p-glow) !important;
+    }
+
+    /* ── BOOKING PANEL ── */
+    .booking-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow);
+      position: sticky; top: 80px;
+    }
+
+    .panel-header {
+      padding: 1.2rem 1.4rem;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-d); font-weight: 700;
+      font-size: .95rem; color: var(--ink);
+      display: flex; align-items: center; gap: .5rem;
+    }
+
+    .panel-header i { color: var(--p); }
+
+    .panel-body { padding: 1.4rem; }
+
+    .panel-empty {
+      text-align: center; padding: 2rem 1rem;
+      color: var(--ink-3); font-size: .85rem; line-height: 1.6;
+    }
+
+    .panel-empty i {
+      font-size: 2.5rem; color: var(--p-pale);
+      display: block; margin-bottom: .75rem;
+    }
+
+    .selected-slot-info {
+      background: var(--p-pale);
+      border: 1px solid #c4b5fd;
+      border-radius: var(--r); padding: .9rem 1rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .slot-info-row {
+      display: flex; justify-content: space-between;
+      font-size: .82rem; margin-bottom: .3rem;
+      color: var(--ink-2);
+    }
+
+    .slot-info-row:last-child { margin: 0; }
+    .slot-info-val { font-weight: 600; color: var(--p-dark); font-family: var(--font-m); }
+
+    .rate-row {
+      display: flex; justify-content: space-between;
+      align-items: center; padding: .6rem 0;
+      border-bottom: 1px dashed var(--border);
+      font-size: .85rem; color: var(--ink-2);
+    }
+
+    .rate-row:last-of-type { border: none; }
+    .rate-val { font-family: var(--font-m); font-weight: 600; color: var(--ink); }
+
+    .total-row {
+      background: var(--bg); border-radius: var(--r);
+      padding: .8rem 1rem; margin: .75rem 0 1rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    .total-label { font-size: .82rem; font-weight: 700; color: var(--ink); }
+    .total-val {
+      font-family: var(--font-d); font-size: 1.3rem;
+      font-weight: 800; color: var(--p);
+    }
+
+    .btn-reserve {
+      width: 100%; padding: .85rem;
+      background: linear-gradient(135deg, var(--p), var(--p-light));
+      color: #fff; border: none; border-radius: var(--r);
+      font-family: var(--font-d); font-size: .95rem;
+      font-weight: 700; cursor: pointer;
+      transition: opacity .18s, transform .15s;
+      display: flex; align-items: center; justify-content: center; gap: .5rem;
+      box-shadow: 0 4px 16px var(--p-glow);
+      margin-bottom: .75rem;
+    }
+
+    .btn-reserve:hover { opacity: .9; transform: translateY(-1px); }
+    .btn-reserve:disabled {
+      opacity: .4; cursor: not-allowed; transform: none;
+    }
+
+    .secure-note {
+      text-align: center; font-size: .7rem; color: var(--ink-3);
+      font-family: var(--font-m);
+      display: flex; align-items: center; justify-content: center; gap: .4rem;
+    }
+
+    .secure-note i { color: var(--green); }
+
+    /* ═══════════════════════════════════
+       FEATURES STRIP
+    ═══════════════════════════════════ */
+    .features-strip {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .features-inner {
+      max-width: 1200px; margin: 0 auto;
+      padding: 2.5rem clamp(1rem, 4vw, 3rem);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+    }
+
+    .feature-item {
+      display: flex; align-items: flex-start; gap: .9rem;
+    }
+
+    .feature-icon {
+      width: 44px; height: 44px; flex-shrink: 0;
+      border-radius: 10px; background: var(--p-pale);
+      display: grid; place-items: center;
+      font-size: 1.1rem; color: var(--p);
+    }
+
+    .feature-name {
+      font-family: var(--font-d); font-size: .9rem;
+      font-weight: 700; color: var(--ink); margin-bottom: .2rem;
+    }
+
+    .feature-desc { font-size: .8rem; color: var(--ink-3); line-height: 1.5; }
+
+    /* ═══════════════════════════════════
+       HOW IT WORKS
+    ═══════════════════════════════════ */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem; margin-top: 2.5rem;
+      position: relative;
+    }
+
+    .step-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: 1.5rem;
+      position: relative; text-align: center;
+    }
+
+    .step-num {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--p); color: #fff;
+      font-family: var(--font-d); font-size: .95rem; font-weight: 800;
+      display: grid; place-items: center; margin: 0 auto 1rem;
+    }
+
+    .step-icon {
+      font-size: 1.8rem; color: var(--p); margin-bottom: .75rem;
+    }
+
+    .step-title {
+      font-family: var(--font-d); font-size: .95rem;
+      font-weight: 700; color: var(--ink); margin-bottom: .4rem;
+    }
+
+    .step-desc { font-size: .82rem; color: var(--ink-3); line-height: 1.5; }
+
+    /* ═══════════════════════════════════
+       RATES
+    ═══════════════════════════════════ */
+    .rate-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.2rem; margin-top: 2rem;
+    }
+
+    .rate-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-lg); padding: 1.5rem;
+      text-align: center; transition: all .2s;
+    }
+
+    .rate-card:hover {
+      border-color: var(--p);
+      box-shadow: var(--shadow);
+      transform: translateY(-3px);
+    }
+
+    .rate-card.featured {
+      border-color: var(--p);
+      background: linear-gradient(160deg, var(--p-pale) 0%, #fff 100%);
+      box-shadow: var(--shadow);
+    }
+
+    .rate-badge {
+      display: inline-block; font-size: .65rem;
+      font-family: var(--font-m); letter-spacing: 1.5px;
+      text-transform: uppercase; padding: .2rem .6rem;
+      border-radius: 20px; margin-bottom: .8rem;
+    }
+
+    .rate-badge.popular { background: var(--p); color: #fff; }
+    .rate-badge.standard { background: var(--bg); color: var(--ink-3); border: 1px solid var(--border); }
+
+    .rate-vehicle { font-size: 2rem; margin-bottom: .4rem; }
+
+    .rate-name {
+      font-family: var(--font-d); font-size: 1rem;
+      font-weight: 700; color: var(--ink); margin-bottom: .75rem;
+    }
+
+    .rate-price {
+      font-family: var(--font-d); font-size: 1.8rem;
+      font-weight: 800; color: var(--p); line-height: 1;
+    }
+
+    .rate-unit {
+      font-size: .75rem; color: var(--ink-3);
+      font-family: var(--font-m); margin-bottom: 1rem;
+    }
+
+    .rate-features { list-style: none; text-align: left; }
+
+    .rate-features li {
+      font-size: .8rem; color: var(--ink-2); padding: .3rem 0;
+      display: flex; align-items: center; gap: .5rem;
+    }
+
+    .rate-features li i { color: var(--green); font-size: .85rem; }
+
+    /* ═══════════════════════════════════
+       MODAL
+    ═══════════════════════════════════ */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 999;
+      background: rgba(26, 5, 51, .6);
+      backdrop-filter: blur(4px);
+      display: none; place-items: center;
+    }
+
+    .modal-overlay.show { display: grid; }
+
+    .modal-box {
+      background: #fff; border-radius: var(--r-lg);
+      width: min(480px, 95vw);
+      padding: 2rem; position: relative;
+      box-shadow: 0 24px 80px rgba(0,0,0,.25);
+      animation: modalIn .25s ease;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(.93) translateY(16px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .modal-close {
+      position: absolute; top: 1rem; right: 1rem;
+      background: var(--bg); border: none;
+      width: 32px; height: 32px; border-radius: 8px;
+      font-size: 1rem; color: var(--ink-3); cursor: pointer;
+      display: grid; place-items: center; transition: all .15s;
+    }
+
+    .modal-close:hover { background: var(--p-pale); color: var(--p); }
+
+    .modal-success-icon {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: var(--green-bg); margin: 0 auto 1.25rem;
+      display: grid; place-items: center;
+      font-size: 1.8rem; color: var(--green);
+    }
+
+    .modal-title {
+      font-family: var(--font-d); font-size: 1.3rem;
+      font-weight: 800; color: var(--ink);
+      text-align: center; margin-bottom: .5rem;
+    }
+
+    .modal-sub {
+      font-size: .85rem; color: var(--ink-3);
+      text-align: center; margin-bottom: 1.5rem;
+    }
+
+    .confirm-grid {
+      background: var(--bg); border-radius: var(--r);
+      padding: 1rem 1.2rem; margin-bottom: 1.25rem;
+    }
+
+    .confirm-row {
+      display: flex; justify-content: space-between;
+      font-size: .85rem; padding: .35rem 0;
+      border-bottom: 1px solid var(--border);
+      color: var(--ink-2);
+    }
+
+    .confirm-row:last-child { border: none; }
+    .confirm-row b { color: var(--ink); font-weight: 600; }
+
+    .qr-placeholder {
+      width: 90px; height: 90px; margin: 0 auto 1rem;
+      background: var(--p-pale); border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 2.5rem; color: var(--p);
+    }
+
+    /* ═══════════════════════════════════
+       FOOTER
+    ═══════════════════════════════════ */
+    footer {
+      background: var(--ink);
+      color: rgba(255,255,255,.5);
+      padding: 2rem clamp(1rem, 4vw, 3rem);
+      font-size: .78rem; font-family: var(--font-m);
+      display: flex; align-items: center;
+      justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+    }
+
+    footer .brand { color: #fff; font-weight: 700; font-family: var(--font-d); }
+
+    /* ═══════════════════════════════════
+       TOAST
+    ═══════════════════════════════════ */
+    .toast-container {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      z-index: 9999; display: flex; flex-direction: column; gap: .5rem;
+    }
+
+    .pk-toast {
+      background: var(--ink); color: #fff;
+      padding: .75rem 1.2rem; border-radius: var(--r);
+      font-size: .82rem; display: flex; align-items: center; gap: .6rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,.2);
+      animation: toastIn .3s ease;
+      border-left: 3px solid var(--p-light);
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(24px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ═══════════════════════════════════
+       MOBILE
+    ═══════════════════════════════════ */
+    @media (max-width: 991px) {
+      .nav-links { display: none; }
+      .nav-links.open {
+        display: flex; flex-direction: column;
+        position: absolute; top: 64px; left: 0; right: 0;
+        background: #fff; border-bottom: 1px solid var(--border);
+        padding: .5rem; gap: .2rem; z-index: 200;
+      }
+      .nav-hamburger { display: block; }
+
+      .hero-inner { grid-template-columns: 1fr; }
+      .search-card { margin-top: 1.5rem; }
+
+      .avail-layout { grid-template-columns: 1fr; }
+      .booking-panel { position: static; }
+    }
+
+    @media (max-width: 576px) {
+      .hero-stats { gap: 1rem; }
+    }
+
+    /* ── FADE IN ── */
+    .fade-in {
+      opacity: 0; transform: translateY(20px);
+      transition: opacity .5s ease, transform .5s ease;
+    }
+    .fade-in.visible { opacity: 1; transform: none; }
+  </style>
 </head>
-
 <body>
 
-	<!-- ░░ OVERLAY (mobile) ░░ -->
-	<div id="overlay"></div>
+<!-- ── NAV ── -->
+<nav>
+  <a href="#" class="nav-brand">
+    <div class="nav-brand-icon"><i class="bi bi-p-square-fill"></i></div>
+    ParkVault
+  </a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="#disponibilidad">Disponibilidad</a></li>
+    <li><a href="#como-funciona">Cómo funciona</a></li>
+    <li><a href="#tarifas">Tarifas</a></li>
+    <li><a href="#" class="nav-cta"><i class="bi bi-qr-code me-1"></i>Mis reservas</a></li>
+  </ul>
+  <button class="nav-hamburger" onclick="toggleNav()" aria-label="Menú">
+    <i class="bi bi-list" id="hambIcon"></i>
+  </button>
+</nav>
 
-	<!-- ░░ SIDEBAR ░░ -->
-	<nav id="sidebar">
-		<div class="brand">
-			<div class="brand-icon"><i class="bi bi-p-square-fill"></i></div>
-			<div>
-				<div class="brand-name">ParkVault</div>
-				<div class="brand-sub">v2.4.0</div>
-			</div>
-		</div>
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-ring-extra"></div>
+  <div class="hero-inner">
+    <!-- Left copy -->
+    <div>
+      <div class="hero-eyebrow"><span></span> En línea ahora</div>
+      <h1 class="hero-title">Reserva tu espacio,<br><em>llega sin estrés.</em></h1>
+      <p class="hero-sub">
+        Consulta disponibilidad en tiempo real, elige tu lugar y paga en línea.
+        Tu espacio te espera cuando llegas.
+      </p>
+      <div class="hero-stats">
+        <div>
+          <div class="hero-stat-val" id="heroFree">74</div>
+          <div class="hero-stat-label">Libres ahora</div>
+        </div>
+        <div>
+          <div class="hero-stat-val">248</div>
+          <div class="hero-stat-label">Espacios totales</div>
+        </div>
+        <div>
+          <div class="hero-stat-val">3</div>
+          <div class="hero-stat-label">Niveles</div>
+        </div>
+      </div>
+    </div>
 
-		<div class="nav-section">Principal</div>
-		<a href="#" class="nav-link active"><i class="bi bi-speedometer2"></i> Dashboard</a>
-		<a href="#" class="nav-link"><i class="bi bi-grid-3x3-gap"></i> Mapa de Espacios</a>
-		<a href="#" class="nav-link"><i class="bi bi-car-front-fill"></i> Vehículos Activos</a>
+    <!-- Search card -->
+    <div class="search-card">
+      <div class="search-card-title">
+        <i class="bi bi-search"></i> Buscar disponibilidad
+      </div>
 
-		<div class="nav-section">Gestión</div>
-		<a href="#" class="nav-link"><i class="bi bi-ticket-detailed"></i> Tiquetes</a>
-		<a href="#" class="nav-link"><i class="bi bi-calendar-check"></i> Reservas</a>
-		<a href="#" class="nav-link"><i class="bi bi-people"></i> Clientes</a>
-		<a href="#" class="nav-link"><i class="bi bi-currency-dollar"></i> Tarifas</a>
+      <div class="field-group">
+        <div class="field-label">Tipo de vehículo</div>
+        <div class="vehicle-tabs">
+          <button class="vtab active" data-type="auto" onclick="selectVehicle(this)">
+            <i class="bi bi-car-front-fill"></i> Auto
+          </button>
+          <button class="vtab" data-type="moto" onclick="selectVehicle(this)">
+            <i class="bi bi-scooter"></i> Moto
+          </button>
+          <button class="vtab" data-type="camion" onclick="selectVehicle(this)">
+            <i class="bi bi-truck-front-fill"></i> Camión
+          </button>
+        </div>
+      </div>
 
-		<div class="nav-section">Reportes</div>
-		<a href="#" class="nav-link"><i class="bi bi-bar-chart-line"></i> Ingresos</a>
-		<a href="#" class="nav-link"><i class="bi bi-file-earmark-text"></i> Reportes</a>
+      <div class="row g-2">
+        <div class="col-6 field-group">
+          <div class="field-label">Fecha de entrada</div>
+          <input type="date" class="pk-input" id="dateIn" />
+        </div>
+        <div class="col-6 field-group">
+          <div class="field-label">Hora de entrada</div>
+          <input type="time" class="pk-input" id="timeIn" />
+        </div>
+        <div class="col-6 field-group">
+          <div class="field-label">Fecha de salida</div>
+          <input type="date" class="pk-input" id="dateOut" />
+        </div>
+        <div class="col-6 field-group">
+          <div class="field-label">Hora de salida</div>
+          <input type="time" class="pk-input" id="timeOut" />
+        </div>
+        <div class="col-12 field-group mb-0">
+          <div class="field-label">Placa del vehículo</div>
+          <input type="text" class="pk-input" id="plate" placeholder="Ej: ABC 123" maxlength="8" style="text-transform:uppercase;" />
+        </div>
+      </div>
 
-		<div class="nav-section">Sistema</div>
-		<a href="#" class="nav-link"><i class="bi bi-shield-check"></i> Seguridad</a>
-		<a href="#" class="nav-link"><i class="bi bi-gear"></i> Configuración</a>
+      <div style="margin-top:1rem;">
+        <button class="btn-search" onclick="scrollToMap()">
+          <i class="bi bi-map-fill"></i> Ver espacios disponibles
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
 
-		<div class="sidebar-footer">
-			<div class="nav-link" style="cursor:default;">
-				<img src="https://ui-avatars.com/api/?name=Admin+Parque&background=7c3aed&color=fff&size=32&rounded=true"
-					width="32" height="32" class="rounded-2" alt="Admin" />
-				<div>
-					<div style="font-size:.82rem;color:#fff;font-weight:600;">Admin Parque</div>
-					<div style="font-size:.68rem;color:var(--pk-muted);font-family:var(--font-mono);">Superadmin</div>
-				</div>
-			</div>
-		</div>
-	</nav>
+<!-- ── FEATURES STRIP ── -->
+<div class="features-strip">
+  <div class="features-inner">
+    <div class="feature-item fade-in">
+      <div class="feature-icon"><i class="bi bi-shield-fill-check"></i></div>
+      <div>
+        <div class="feature-name">Pago seguro</div>
+        <div class="feature-desc">Transacciones cifradas y protegidas en todo momento.</div>
+      </div>
+    </div>
+    <div class="feature-item fade-in">
+      <div class="feature-icon"><i class="bi bi-clock-fill"></i></div>
+      <div>
+        <div class="feature-name">Reserva 24/7</div>
+        <div class="feature-desc">Disponible cualquier hora, desde cualquier dispositivo.</div>
+      </div>
+    </div>
+    <div class="feature-item fade-in">
+      <div class="feature-icon"><i class="bi bi-qr-code"></i></div>
+      <div>
+        <div class="feature-name">Acceso por QR</div>
+        <div class="feature-desc">Muestra tu código al llegar y la barrera se abre automáticamente.</div>
+      </div>
+    </div>
+    <div class="feature-item fade-in">
+      <div class="feature-icon"><i class="bi bi-camera-video-fill"></i></div>
+      <div>
+        <div class="feature-name">Vigilancia constante</div>
+        <div class="feature-desc">Cámaras de seguridad activas las 24 horas del día.</div>
+      </div>
+    </div>
+  </div>
+</div>
 
-	<!-- ░░ TOPBAR ░░ -->
-	<header id="topbar">
-		<button id="sidebarToggle" onclick="toggleSidebar()">
-			<i class="bi bi-list" style="font-size:1.2rem;"></i>
-		</button>
+<!-- ── AVAILABILITY MAP ── -->
+<div id="disponibilidad">
+  <div class="section">
+    <p class="section-eyebrow">Disponibilidad en tiempo real</p>
+    <h2 class="section-heading">Elige tu espacio</h2>
+    <p class="section-sub">Selecciona un espacio verde o morado (VIP) del mapa. Los rojos y amarillos ya están ocupados o reservados.</p>
 
-		<div class="topbar-search">
-			<i class="bi bi-search search-icon"></i>
-			<input type="text" placeholder="Buscar placa, cliente, tiquete…" id="searchInput" />
-		</div>
+    <div class="avail-layout">
+      <!-- MAP -->
+      <div class="map-card fade-in">
+        <div class="map-header">
+          <div class="map-title"><i class="bi bi-map-fill"></i> Planta del parqueadero</div>
+          <div class="level-tabs">
+            <button class="ltab active" onclick="switchLevel(this, 1)">Nivel 1</button>
+            <button class="ltab" onclick="switchLevel(this, 2)">Nivel 2</button>
+            <button class="ltab" onclick="switchLevel(this, 3)">Nivel 3</button>
+          </div>
+        </div>
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot dot-free"></div> Libre</div>
+          <div class="legend-item"><div class="legend-dot dot-occupied"></div> Ocupado</div>
+          <div class="legend-item"><div class="legend-dot dot-reserved"></div> Reservado</div>
+          <div class="legend-item"><div class="legend-dot dot-vip"></div> VIP</div>
+        </div>
+        <div class="map-body" id="mapBody">
+          <!-- filled by JS -->
+        </div>
+      </div>
 
-		<div class="topbar-actions">
-			<button id="themeToggle" onclick="toggleTheme()">
-				<i class="bi bi-moon-stars-fill" id="themeIcon"></i>
-				<span id="themeLabel">Oscuro</span>
-			</button>
+      <!-- BOOKING PANEL -->
+      <div class="booking-panel fade-in">
+        <div class="panel-header"><i class="bi bi-calendar-check-fill"></i> Tu reserva</div>
+        <div class="panel-body" id="panelBody">
 
-			<div class="icon-btn" title="Notificaciones">
-				<i class="bi bi-bell"></i>
-				<span class="badge-dot"></span>
-			</div>
+          <!-- Empty state -->
+          <div class="panel-empty" id="panelEmpty">
+            <i class="bi bi-cursor-fill"></i>
+            Selecciona un espacio<br>disponible en el mapa<br>para continuar.
+          </div>
 
-			<div class="icon-btn" title="Cámara">
-				<i class="bi bi-camera-video"></i>
-			</div>
+          <!-- Booking form (hidden until slot selected) -->
+          <div id="bookingForm" style="display:none;">
+            <div class="selected-slot-info" id="slotInfo" style="display:flex; flex-direction:column; gap:.2rem;">
+              <div class="slot-info-row">
+                <span>Espacio</span>
+                <span class="slot-info-val" id="infoSlot">—</span>
+              </div>
+              <div class="slot-info-row">
+                <span>Zona</span>
+                <span class="slot-info-val" id="infoZone">—</span>
+              </div>
+              <div class="slot-info-row">
+                <span>Tipo</span>
+                <span class="slot-info-val" id="infoType">—</span>
+              </div>
+            </div>
 
-			<div class="avatar" title="Mi perfil">AP</div>
-		</div>
-	</header>
+            <div class="field-group">
+              <div class="field-label">Nombre completo</div>
+              <input type="text" class="pk-input" id="bookName" placeholder="Tu nombre" />
+            </div>
 
-	<!-- ░░ MAIN ░░ -->
-	<main id="main">
+            <div class="field-group">
+              <div class="field-label">Teléfono / Celular</div>
+              <input type="tel" class="pk-input" id="bookPhone" placeholder="310 000 0000" />
+            </div>
 
-		<!-- PAGE HEADER -->
-		<div class="page-header fade-up">
-			<div>
-				<div class="page-title">Dashboard <span>Principal</span></div>
-				<div class="page-sub">Sábado, 28 Mar 2026 — Turno: Mañana</div>
-			</div>
-			<button class="btn btn-sm"
-				style="background:var(--pk-purple);color:#fff;border-radius:8px;font-family:var(--font-mono);font-size:.8rem;">
-				<i class="bi bi-plus-lg me-1"></i> Nuevo Ingreso
-			</button>
-		</div>
+            <div class="field-group" style="margin-bottom:1rem;">
+              <div class="field-label">Placa confirmada</div>
+              <input type="text" class="pk-input" id="bookPlate" placeholder="ABC 123" style="text-transform:uppercase;" />
+            </div>
 
-		<!-- ALERTS -->
-		<div class="pk-alert mb-3 fade-up delay-1">
-			<i class="bi bi-info-circle-fill"></i>
-			<span>Zona B alcanzó el <strong>90% de ocupación</strong>. Considere abrir el nivel subterráneo.</span>
-		</div>
+            <div class="rate-row">
+              <span>Tarifa base</span>
+              <span class="rate-val" id="rateBase">$2.000/h</span>
+            </div>
+            <div class="rate-row">
+              <span>Duración estimada</span>
+              <span class="rate-val" id="rateDur">—</span>
+            </div>
 
-		<!-- STAT CARDS -->
-		<div class="row g-3 mb-4">
-			<div class="col-6 col-md-3 fade-up delay-1">
-				<div class="stat-card" style="--accent: var(--pk-purple-light);">
-					<div class="stat-icon"><i class="bi bi-grid-3x3-gap-fill"></i></div>
-					<div class="stat-value">248</div>
-					<div class="stat-label">Total Espacios</div>
-					<div class="stat-trend"><i class="bi bi-dash text-secondary"></i><span
-							style="color:var(--pk-muted)">sin cambio</span></div>
-				</div>
-			</div>
-			<div class="col-6 col-md-3 fade-up delay-2">
-				<div class="stat-card" style="--accent: var(--pk-green);">
-					<div class="stat-icon" style="background:rgba(16,185,129,.15);color:var(--pk-green);">
-						<i class="bi bi-check-circle-fill"></i>
-					</div>
-					<div class="stat-value">74</div>
-					<div class="stat-label">Disponibles</div>
-					<div class="stat-trend trend-down"><i class="bi bi-arrow-down-short"></i> 12 desde ayer</div>
-				</div>
-			</div>
-			<div class="col-6 col-md-3 fade-up delay-3">
-				<div class="stat-card" style="--accent: var(--pk-red);">
-					<div class="stat-icon" style="background:rgba(239,68,68,.15);color:var(--pk-red);">
-						<i class="bi bi-car-front-fill"></i>
-					</div>
-					<div class="stat-value">174</div>
-					<div class="stat-label">Ocupados</div>
-					<div class="stat-trend trend-up"><i class="bi bi-arrow-up-short"></i> 70.2% ocupación</div>
-				</div>
-			</div>
-			<div class="col-6 col-md-3 fade-up delay-4">
-				<div class="stat-card" style="--accent: var(--pk-yellow);">
-					<div class="stat-icon" style="background:rgba(245,158,11,.15);color:var(--pk-yellow);">
-						<i class="bi bi-cash-coin"></i>
-					</div>
-					<div class="stat-value">$4.2M</div>
-					<div class="stat-label">Ingresos Hoy</div>
-					<div class="stat-trend trend-up"><i class="bi bi-arrow-up-short"></i> +18% vs ayer</div>
-				</div>
-			</div>
-		</div>
+            <div class="total-row">
+              <span class="total-label">Total estimado</span>
+              <span class="total-val" id="rateTotal">$0</span>
+            </div>
 
-		<!-- CHART + QUICK ACCESS -->
-		<div class="row g-3 mb-4">
-			<!-- BAR CHART -->
-			<div class="col-12 col-lg-8 fade-up delay-2">
-				<div class="chart-card h-100">
-					<div class="section-title"><i class="bi bi-bar-chart-line-fill"></i> Ingresos Semanales</div>
-					<div class="bar-chart" id="barChart">
-						<!-- filled by JS -->
-					</div>
-					<div class="d-flex justify-content-between mt-2">
-						<span style="font-size:.72rem;font-family:var(--font-mono);color:var(--pk-muted);">Lun —
-							Dom</span>
-						<span style="font-size:.72rem;font-family:var(--font-mono);color:var(--pk-purple-light);">Total:
-							$24.8M</span>
-					</div>
-				</div>
-			</div>
+            <button class="btn-reserve" id="btnReserve" onclick="confirmReservation()">
+              <i class="bi bi-calendar-check-fill"></i> Confirmar reserva
+            </button>
 
-			<!-- QUICK ACCESS -->
-			<div class="col-12 col-lg-4 fade-up delay-3">
-				<div class="chart-card h-100">
-					<div class="section-title"><i class="bi bi-lightning-charge-fill"></i> Acceso Rápido</div>
-					<div class="row g-2">
-						<div class="col-6">
-							<a href="#" class="quick-btn">
-								<i class="bi bi-qr-code-scan"></i>
-								<span>Escanear QR</span>
-							</a>
-						</div>
-						<div class="col-6">
-							<a href="#" class="quick-btn">
-								<i class="bi bi-printer-fill"></i>
-								<span>Imprimir Tiquete</span>
-							</a>
-						</div>
-						<div class="col-6">
-							<a href="#" class="quick-btn">
-								<i class="bi bi-box-arrow-right"></i>
-								<span>Registrar Salida</span>
-							</a>
-						</div>
-						<div class="col-6">
-							<a href="#" class="quick-btn">
-								<i class="bi bi-calendar-plus"></i>
-								<span>Nueva Reserva</span>
-							</a>
-						</div>
-						<div class="col-6">
-							<a href="#" class="quick-btn">
-								<i class="bi bi-camera-video-fill"></i>
-								<span>Ver Cámaras</span>
-							</a>
-						</div>
-						<div class="col-6">
-							<a href="#" class="quick-btn">
-								<i class="bi bi-graph-up-arrow"></i>
-								<span>Reporte Diario</span>
-							</a>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
+            <div class="secure-note">
+              <i class="bi bi-shield-fill-check"></i> Pago seguro · Sin cobro ahora
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-		<!-- PARKING MAP -->
-		<div class="row g-3 mb-4">
-			<div class="col-12 fade-up delay-3">
-				<div class="chart-card">
-					<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-						<div class="section-title mb-0"><i class="bi bi-map-fill"></i> Mapa de Espacios — Nivel 1</div>
-						<div class="d-flex gap-2 flex-wrap" style="font-size:.72rem;font-family:var(--font-mono);">
-							<span style="color:var(--pk-green);">● Libre</span>
-							<span style="color:var(--pk-red);">● Ocupado</span>
-							<span style="color:var(--pk-yellow);">● Reservado</span>
-							<span style="color:var(--pk-purple-light);">● VIP</span>
-						</div>
-					</div>
-					<div class="parking-grid" id="parkingGrid">
-						<!-- filled by JS -->
-					</div>
-				</div>
-			</div>
-		</div>
+<!-- ── HOW IT WORKS ── -->
+<div id="como-funciona" style="background: var(--surface); border-top: 1px solid var(--border);">
+  <div class="section">
+    <p class="section-eyebrow">Proceso simple</p>
+    <h2 class="section-heading">¿Cómo funciona?</h2>
+    <p class="section-sub">Reservar toma menos de 2 minutos desde cualquier dispositivo.</p>
 
-		<!-- RECENT ACTIVITY TABLE -->
-		<div class="row g-3">
-			<div class="col-12 fade-up delay-4">
-				<div class="section-title"><i class="bi bi-clock-history"></i> Actividad Reciente</div>
-				<div class="pk-table p-3">
-					<table id="activityDT" class="table table-hover align-middle mb-0 w-100">
-						<thead>
-							<tr>
-								<th>Placa</th>
-								<th>Espacio</th>
-								<th>Entrada</th>
-								<th>Duración</th>
-								<th>Tipo</th>
-								<th>Estado</th>
-								<th>Cobro</th>
-							</tr>
-						</thead>
-						<tbody id="activityTable">
-							<!-- filled by JS -->
-						</tbody>
-					</table>
-				</div>
-			</div>
-		</div>
+    <div class="steps">
+      <div class="step-card fade-in">
+        <div class="step-num">1</div>
+        <div class="step-icon"><i class="bi bi-search"></i></div>
+        <div class="step-title">Consulta disponibilidad</div>
+        <div class="step-desc">Ingresa tu fecha, hora y tipo de vehículo para ver los espacios libres en tiempo real.</div>
+      </div>
+      <div class="step-card fade-in">
+        <div class="step-num">2</div>
+        <div class="step-icon"><i class="bi bi-map-fill"></i></div>
+        <div class="step-title">Elige tu espacio</div>
+        <div class="step-desc">Selecciona el espacio que prefieras directamente en el plano interactivo del parqueadero.</div>
+      </div>
+      <div class="step-card fade-in">
+        <div class="step-num">3</div>
+        <div class="step-icon"><i class="bi bi-credit-card-fill"></i></div>
+        <div class="step-title">Confirma y paga</div>
+        <div class="step-desc">Completa tus datos y el pago en línea de forma segura. Recibes tu QR inmediatamente.</div>
+      </div>
+      <div class="step-card fade-in">
+        <div class="step-num">4</div>
+        <div class="step-icon"><i class="bi bi-qr-code"></i></div>
+        <div class="step-title">Llega y accede</div>
+        <div class="step-desc">Muestra tu código QR en la entrada. La barrera se abre y tu espacio te está esperando.</div>
+      </div>
+    </div>
+  </div>
+</div>
 
-	</main>
+<!-- ── RATES ── -->
+<div id="tarifas">
+  <div class="section">
+    <p class="section-eyebrow">Tarifas</p>
+    <h2 class="section-heading">Precios claros, sin sorpresas</h2>
+    <p class="section-sub">Consulta cuánto pagarás antes de reservar. La tarifa se cobra al salir según el tiempo real.</p>
 
-	<!-- jQuery + DataTables -->
-	<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-	<script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js"></script>
-	<script src="https://cdn.datatables.net/2.0.8/js/dataTables.bootstrap5.min.js"></script>
+    <div class="rate-cards">
+      <div class="rate-card fade-in">
+        <span class="rate-badge standard">Estándar</span>
+        <div class="rate-vehicle">🚗</div>
+        <div class="rate-name">Automóvil</div>
+        <div class="rate-price">$2.000</div>
+        <div class="rate-unit">por hora</div>
+        <ul class="rate-features">
+          <li><i class="bi bi-check-circle-fill"></i> Acceso por QR</li>
+          <li><i class="bi bi-check-circle-fill"></i> Vigilancia 24h</li>
+          <li><i class="bi bi-check-circle-fill"></i> Techo cubierto</li>
+        </ul>
+      </div>
+      <div class="rate-card featured fade-in">
+        <span class="rate-badge popular">Más reservado</span>
+        <div class="rate-vehicle">🏍️</div>
+        <div class="rate-name">Motocicleta</div>
+        <div class="rate-price">$1.200</div>
+        <div class="rate-unit">por hora</div>
+        <ul class="rate-features">
+          <li><i class="bi bi-check-circle-fill"></i> Zona exclusiva</li>
+          <li><i class="bi bi-check-circle-fill"></i> Acceso por QR</li>
+          <li><i class="bi bi-check-circle-fill"></i> Tarifas nocturnas</li>
+        </ul>
+      </div>
+      <div class="rate-card fade-in">
+        <span class="rate-badge standard">Especial</span>
+        <div class="rate-vehicle">🚛</div>
+        <div class="rate-name">Camión / Carga</div>
+        <div class="rate-price">$4.500</div>
+        <div class="rate-unit">por hora</div>
+        <ul class="rate-features">
+          <li><i class="bi bi-check-circle-fill"></i> Espacios amplios</li>
+          <li><i class="bi bi-check-circle-fill"></i> Plataforma de carga</li>
+          <li><i class="bi bi-check-circle-fill"></i> Acceso pesado</li>
+        </ul>
+      </div>
+      <div class="rate-card fade-in">
+        <span class="rate-badge" style="background:var(--p-pale);color:var(--p);border:1px solid #c4b5fd;">VIP</span>
+        <div class="rate-vehicle">⭐</div>
+        <div class="rate-name">Espacio VIP</div>
+        <div class="rate-price">$3.500</div>
+        <div class="rate-unit">por hora</div>
+        <ul class="rate-features">
+          <li><i class="bi bi-check-circle-fill"></i> Primer nivel, salida fácil</li>
+          <li><i class="bi bi-check-circle-fill"></i> Espacio extra ancho</li>
+          <li><i class="bi bi-check-circle-fill"></i> Atención prioritaria</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
 
-	<script>
-		/* ── DATA ── */
-		const barData = [
-			{day: 'Lun', val: 3200000},
-			{day: 'Mar', val: 2800000},
-			{day: 'Mié', val: 4100000},
-			{day: 'Jue', val: 3700000},
-			{day: 'Vie', val: 5200000},
-			{day: 'Sáb', val: 4200000},
-			{day: 'Dom', val: 1600000},
-		];
+<!-- ── FOOTER ── -->
+<footer>
+  <div>
+    <span class="brand">ParkVault</span> — Calle 72 # 15-30, Bogotá
+  </div>
+  <div>© 2026 ParkVault · Todos los derechos reservados</div>
+</footer>
 
-		const activities = [
-			{plate: 'ABC 123', space: 'A-04', entry: '07:12', dur: '4h 30m', type: 'Auto', status: 'active', charge: '$9.000'},
-			{plate: 'XYZ 789', space: 'B-12', entry: '06:45', dur: '5h 02m', type: 'Moto', status: 'active', charge: '$5.500'},
-			{plate: 'DEF 456', space: 'C-01', entry: '08:30', dur: '2h 15m', type: 'Auto', status: 'pending', charge: '$4.500'},
-			{plate: 'GHI 321', space: 'A-07', entry: '05:00', dur: '6h 42m', type: 'Auto', status: 'done', charge: '$13.400'},
-			{plate: 'JKL 654', space: 'B-03', entry: '09:15', dur: '0h 52m', type: 'Camión', status: 'active', charge: '$3.000'},
-			{plate: 'MNO 987', space: 'D-08', entry: '04:20', dur: '7h 27m', type: 'Auto', status: 'done', charge: '$14.900'},
-			{plate: 'PQR 111', space: 'C-05', entry: '10:00', dur: '1h 10m', type: 'Moto', status: 'active', charge: '$2.200'},
-			{plate: 'STU 222', space: 'A-11', entry: '03:30', dur: '8h 15m', type: 'Auto', status: 'done', charge: '$16.500'},
-			{plate: 'VWX 333', space: 'B-08', entry: '11:20', dur: '0h 25m', type: 'Camión', status: 'active', charge: '$1.800'},
-			{plate: 'YZA 444', space: 'D-02', entry: '06:00', dur: '5h 45m', type: 'Auto', status: 'pending', charge: '$11.500'},
-			{plate: 'BCD 555', space: 'A-15', entry: '08:05', dur: '3h 20m', type: 'Moto', status: 'active', charge: '$4.000'},
-			{plate: 'EFG 666', space: 'C-09', entry: '02:00', dur: '9h 40m', type: 'Auto', status: 'done', charge: '$19.400'},
-			{plate: 'HIJ 777', space: 'B-01', entry: '12:00', dur: '0h 05m', type: 'Auto', status: 'active', charge: '$1.000'},
-			{plate: 'KLM 888', space: 'D-11', entry: '07:45', dur: '4h 00m', type: 'Moto', status: 'pending', charge: '$4.800'},
-			{plate: 'NOP 999', space: 'A-03', entry: '05:30', dur: '6h 15m', type: 'Auto', status: 'done', charge: '$12.500'},
-		];
+<!-- ── MODAL ── -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()"><i class="bi bi-x"></i></button>
+    <div class="modal-success-icon"><i class="bi bi-check-lg"></i></div>
+    <div class="modal-title">¡Reserva confirmada!</div>
+    <p class="modal-sub">Tu espacio está asegurado. Presenta el QR al ingresar.</p>
+    <div class="qr-placeholder"><i class="bi bi-qr-code"></i></div>
+    <div class="confirm-grid" id="confirmGrid"></div>
+    <button class="btn-reserve" onclick="closeModal()">
+      <i class="bi bi-download"></i> Descargar comprobante
+    </button>
+  </div>
+</div>
 
-		/* ── BAR CHART ── */
-		const maxVal = Math.max(...barData.map(d => d.val));
-		const bc = document.getElementById('barChart');
-		barData.forEach(d => {
-			const h = Math.round((d.val / maxVal) * 100);
-			bc.innerHTML += `
-      <div class="bar-wrap">
-        <div class="bar" style="height:${h}%;" title="$${(d.val / 1000).toFixed(0)}K"></div>
-        <div class="bar-label">${d.day}</div>
-      </div>`;
-		});
+<!-- ── TOASTS ── -->
+<div class="toast-container" id="toasts"></div>
 
-		/* ── PARKING GRID ── */
-		const states = ['free', 'free', 'free', 'occupied', 'occupied', 'occupied', 'reserved', 'vip'];
-		const icons = {free: 'bi-car-front', occupied: 'bi-car-front-fill', reserved: 'bi-calendar2-check-fill', vip: 'bi-star-fill'};
-		const grid = document.getElementById('parkingGrid');
-		for (let i = 1; i <= 48; i++) {
-			const s = states[Math.floor(Math.random() * states.length)];
-			grid.innerHTML += `
-      <div class="slot ${s}" title="Espacio ${i} — ${s}">
-        <i class="bi ${icons[s]}"></i>
-        <span>${String(i).padStart(2, '0')}</span>
-      </div>`;
-		}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  /* ── STATE ── */
+  let selectedSlot = null;
+  let selectedVehicle = 'auto';
+  let currentLevel = 1;
 
-		/* ── ACTIVITY TABLE — build rows ── */
-		const statusLabel = {active: 'En Parque', pending: 'Pendiente', done: 'Finalizado'};
-		const tb = document.getElementById('activityTable');
-		activities.forEach(r => {
-			tb.innerHTML += `
-      <tr>
-        <td><span class="plate-badge">${r.plate}</span></td>
-        <td style="font-family:var(--font-mono);font-size:.82rem;">${r.space}</td>
-        <td style="font-family:var(--font-mono);font-size:.82rem;">${r.entry}</td>
-        <td style="font-family:var(--font-mono);font-size:.82rem;">${r.dur}</td>
-        <td>${r.type}</td>
-        <td><span class="status-badge ${r.status}">${statusLabel[r.status]}</span></td>
-        <td style="font-family:var(--font-mono);color:var(--pk-green);font-size:.85rem;">${r.charge}</td>
-      </tr>`;
-		});
+  const RATES = { auto: 2000, moto: 1200, camion: 4500, vip: 3500 };
+  const RATE_LABELS = { auto: '$2.000/h', moto: '$1.200/h', camion: '$4.500/h', vip: '$3.500/h' };
 
-		/* ── DATATABLES INIT (en español) ── */
-		$(document).ready(function () {
-			$('#activityDT').DataTable({
-				pageLength: 7,
-				lengthMenu: [5, 7, 10, 15, 25],
-				order: [[2, 'asc']],
-				responsive: true,
-				language: {
-					decimal: ',',
-					thousands: '.',
-					emptyTable: 'No hay datos disponibles en la tabla',
-					info: 'Mostrando _START_ a _END_ de _TOTAL_ registros',
-					infoEmpty: 'Mostrando 0 a 0 de 0 registros',
-					infoFiltered: '(filtrado de _MAX_ registros totales)',
-					infoPostFix: '',
-					lengthMenu: 'Mostrar _MENU_ registros',
-					loadingRecords: 'Cargando...',
-					processing: 'Procesando...',
-					search: 'Buscar:',
-					zeroRecords: 'No se encontraron resultados',
-					paginate: {
-						first: '«',
-						last: '»',
-						next: '›',
-						previous: '‹',
-					},
-					aria: {
-						sortAscending: ': activar para ordenar ascendente',
-						sortDescending: ': activar para ordenar descendente',
-					},
-				},
-			});
-		});
+  /* ── LEVEL DATA GENERATOR ── */
+  function generateLevel(level) {
+    const seed = level * 37;
+    const zones = level === 1
+      ? [
+          { label: 'Zona A — Acceso principal', slots: 20, vipSlots: [2,5,18] },
+          { label: 'Zona B — Lateral izquierda', slots: 16, vipSlots: [] },
+        ]
+      : level === 2
+      ? [
+          { label: 'Zona C — Centro', slots: 24, vipSlots: [3,11] },
+          { label: 'Zona D — Fondo', slots: 14, vipSlots: [] },
+        ]
+      : [
+          { label: 'Zona E — Terraza', slots: 18, vipSlots: [1] },
+          { label: 'Zona F — Motos exclusivo', slots: 22, vipSlots: [] },
+        ];
 
-		/* ── SIDEBAR TOGGLE ── */
-		const sidebar = document.getElementById('sidebar');
-		const overlay = document.getElementById('overlay');
+    return zones.map((z, zi) => {
+      const slots = [];
+      for (let i = 0; i < z.slots; i++) {
+        let state;
+        if (z.vipSlots.includes(i)) {
+          state = 'vip';
+        } else {
+          const r = (seed + zi * 17 + i * 7) % 10;
+          state = r < 4 ? 'free' : r < 7 ? 'occupied' : 'reserved';
+        }
+        slots.push({ id: `${['A','B','C','D','E','F'][zi * 0 + zi]-0 || z.label.split('Zona ')[1][0]}-${String(i+1).padStart(2,'0')}`, state });
+      }
+      return { label: z.label, slots };
+    });
+  }
 
-		function toggleSidebar() {
-			sidebar.classList.toggle('open');
-			overlay.classList.toggle('show');
-		}
+  /* ── RENDER MAP ── */
+  function renderMap(level) {
+    const zones = generateLevel(level);
+    const body = document.getElementById('mapBody');
+    const icons = { free:'bi-car-front', occupied:'bi-car-front-fill', reserved:'bi-calendar2-check-fill', vip:'bi-star-fill' };
+    const titles = { free:'Libre — click para reservar', occupied:'Ocupado', reserved:'Reservado', vip:'VIP — click para reservar' };
 
-		overlay.addEventListener('click', () => {
-			sidebar.classList.remove('open');
-			overlay.classList.remove('show');
-		});
+    body.innerHTML = zones.map(z => `
+      <div class="zone-label">${z.label}</div>
+      <div class="slot-grid">
+        ${z.slots.map(s => `
+          <div class="slot ${s.state} ${selectedSlot === s.id ? 'selected' : ''}"
+               id="slot-${s.id}"
+               title="${titles[s.state]}"
+               onclick="${(s.state==='free'||s.state==='vip') ? `selectSlot('${s.id}','${s.state}','${z.label}')` : 'showToast(\"Este espacio no está disponible\",\"bi-x-circle\")'}">
+            <i class="bi ${icons[s.state]}"></i>
+            <span>${s.id}</span>
+          </div>`).join('')}
+      </div>`).join('');
+  }
 
-		/* ── THEME TOGGLE ── */
-		let dark = true;
+  /* ── SELECT SLOT ── */
+  function selectSlot(id, state, zone) {
+    selectedSlot = id;
+    renderMap(currentLevel);
 
-		function toggleTheme() {
-			dark = !dark;
-			document.documentElement.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
-			document.getElementById('themeIcon').className = dark ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill';
-			document.getElementById('themeLabel').textContent = dark ? 'Oscuro' : 'Claro';
-		}
-	</script>
+    const isVip = state === 'vip';
+    const rate = isVip ? RATES.vip : RATES[selectedVehicle];
+    const rateLabel = isVip ? RATE_LABELS.vip : RATE_LABELS[selectedVehicle];
+
+    document.getElementById('panelEmpty').style.display = 'none';
+    document.getElementById('bookingForm').style.display = 'block';
+    document.getElementById('infoSlot').textContent = id;
+    document.getElementById('infoZone').textContent = zone.split('—')[0].trim();
+    document.getElementById('infoType').textContent = isVip ? 'VIP' : selectedVehicle.charAt(0).toUpperCase() + selectedVehicle.slice(1);
+    document.getElementById('rateBase').textContent = rateLabel;
+
+    // Sync plate from hero form
+    const heroPlate = document.getElementById('plate').value;
+    if (heroPlate) document.getElementById('bookPlate').value = heroPlate.toUpperCase();
+
+    // Estimate duration
+    const din = document.getElementById('dateIn').value;
+    const tin = document.getElementById('timeIn').value;
+    const dout= document.getElementById('dateOut').value;
+    const tout= document.getElementById('timeOut').value;
+
+    if (din && tin && dout && tout) {
+      const ms = new Date(`${dout}T${tout}`) - new Date(`${din}T${tin}`);
+      if (ms > 0) {
+        const hrs = Math.ceil(ms / 36e5);
+        const total = hrs * rate;
+        document.getElementById('rateDur').textContent = `${hrs}h`;
+        document.getElementById('rateTotal').textContent = `$${total.toLocaleString('es-CO')}`;
+      }
+    } else {
+      document.getElementById('rateDur').textContent = 'Ingresa fechas arriba';
+      document.getElementById('rateTotal').textContent = '—';
+    }
+
+    // Smooth scroll to panel on mobile
+    if (window.innerWidth < 992) {
+      document.querySelector('.booking-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    showToast(`Espacio ${id} seleccionado`, 'bi-check-circle-fill');
+  }
+
+  /* ── SWITCH LEVEL ── */
+  function switchLevel(btn, level) {
+    currentLevel = level;
+    selectedSlot = null;
+    document.querySelectorAll('.ltab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panelEmpty').style.display = 'block';
+    document.getElementById('bookingForm').style.display = 'none';
+    renderMap(level);
+  }
+
+  /* ── VEHICLE SELECTOR ── */
+  function selectVehicle(btn) {
+    selectedVehicle = btn.dataset.type;
+    document.querySelectorAll('.vtab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  /* ── SCROLL TO MAP ── */
+  function scrollToMap() {
+    document.getElementById('disponibilidad').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  /* ── CONFIRM RESERVATION ── */
+  function confirmReservation() {
+    const name  = document.getElementById('bookName').value.trim();
+    const phone = document.getElementById('bookPhone').value.trim();
+    const plate = document.getElementById('bookPlate').value.trim();
+
+    if (!name || !phone || !plate) {
+      showToast('Completa todos los campos', 'bi-exclamation-circle-fill');
+      return;
+    }
+
+    if (!selectedSlot) {
+      showToast('Selecciona un espacio primero', 'bi-exclamation-circle-fill');
+      return;
+    }
+
+    const total = document.getElementById('rateTotal').textContent;
+    const dur   = document.getElementById('rateDur').textContent;
+
+    document.getElementById('confirmGrid').innerHTML = `
+      <div class="confirm-row"><span>Espacio</span><b>${selectedSlot}</b></div>
+      <div class="confirm-row"><span>Nombre</span><b>${name}</b></div>
+      <div class="confirm-row"><span>Placa</span><b>${plate.toUpperCase()}</b></div>
+      <div class="confirm-row"><span>Duración</span><b>${dur}</b></div>
+      <div class="confirm-row"><span>Total</span><b style="color:var(--p)">${total}</b></div>
+    `;
+
+    document.getElementById('modal').classList.add('show');
+    showToast('¡Reserva confirmada!', 'bi-check-circle-fill');
+  }
+
+  /* ── CLOSE MODAL ── */
+  function closeModal() {
+    document.getElementById('modal').classList.remove('show');
+    selectedSlot = null;
+    document.getElementById('panelEmpty').style.display = 'block';
+    document.getElementById('bookingForm').style.display = 'none';
+    document.getElementById('bookName').value = '';
+    document.getElementById('bookPhone').value = '';
+    document.getElementById('bookPlate').value = '';
+    renderMap(currentLevel);
+  }
+
+  /* ── TOAST ── */
+  function showToast(msg, icon = 'bi-info-circle-fill') {
+    const t = document.createElement('div');
+    t.className = 'pk-toast';
+    t.innerHTML = `<i class="bi ${icon}" style="color:var(--p-light);font-size:1rem;"></i> ${msg}`;
+    document.getElementById('toasts').appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  /* ── NAV ── */
+  function toggleNav() {
+    const nl = document.getElementById('navLinks');
+    const ic = document.getElementById('hambIcon');
+    nl.classList.toggle('open');
+    ic.className = nl.classList.contains('open') ? 'bi bi-x-lg' : 'bi bi-list';
+  }
+
+  /* ── FADE IN OBSERVER ── */
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: .1 });
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+  /* ── SET DEFAULT DATES ── */
+  (function setDefaults() {
+    const now = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const fmtT= d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+    const later = new Date(now.getTime() + 3 * 3600000);
+
+    document.getElementById('dateIn').value  = fmt(now);
+    document.getElementById('timeIn').value  = fmtT(now);
+    document.getElementById('dateOut').value = fmt(later);
+    document.getElementById('timeOut').value = fmtT(later);
+  })();
+
+  /* ── INIT ── */
+  renderMap(1);
+
+  // Re-run observer after map is rendered
+  setTimeout(() => {
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+  }, 100);
+</script>
 </body>
-
 </html>

@@ -20,7 +20,7 @@ Esta API proporciona endpoints RESTful para realizar operaciones CRUD. Sistema w
 
 ## 🛠️ Tecnologías Utilizadas
 
-- Spring Boot	4.0.5	Framework principal
+- Spring Boot	4.0.7	Framework principal
 - Java	25	Lenguaje de programación
 - MySQL	8.x	Base de datos relacional
 - Spring Data JPA	-	Persistencia y ORM
